@@ -75,7 +75,7 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 | ID | Title | Status | Priority | Estimate | Assignee | Dependencies |
 |----|-------|--------|----------|----------|----------|-------------|
 | DB-001 | Design and create user schema in Supabase | Not Started | High | 3h | Team Member 1 | SETUP-003 |
-| DB-002 | Implement mystery template schema | Not Started | High | 3h | Team Member 4 | SETUP-003 |
+| DB-002 | Implement mystery template schema | Not Started | High | 3h | Team Member 5 | SETUP-003 |
 | DB-003 | Create story state storage schema | Not Started | High | 4h | - | DB-002 |
 | DB-004 | Design and implement board state schema | Not Started | Medium | 4h | - | DB-003 |
 | DB-005 | Set up Redis schema for caching | Not Started | Medium | 3h | - | SETUP-004 |
@@ -84,8 +84,8 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 
 | ID | Title | Status | Priority | Estimate | Assignee | Dependencies |
 |----|-------|--------|----------|----------|----------|-------------|
-| TEST-001 | Set up frontend testing framework | Not Started | Medium | 3h | Team Member 1 | FE-001 |
-| TEST-002 | Create backend unit tests | Not Started | Medium | 6h | Team Member 2 | BE-001 |
+| TEST-001 | Set up frontend testing framework | Not Started | Medium | 3h | Team Member 2 | FE-001 |
+| TEST-002 | Create backend unit tests | Not Started | Medium | 6h | Team Member 5 | BE-001 |
 | TEST-003 | Implement AI agent unit tests | Not Started | Medium | 8h | - | AI-001 |
 | TEST-004 | Develop integration tests for frontend-backend | Not Started | Medium | 6h | - | FE-005, BE-005 |
 | TEST-005 | Create end-to-end testing suite | Not Started | Low | 8h | - | FE-005, BE-005 |
@@ -94,7 +94,7 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 
 | ID | Title | Status | Priority | Estimate | Assignee | Dependencies |
 |----|-------|--------|----------|----------|----------|-------------|
-| DEPLOY-001 | Set up CI/CD pipeline with GitHub Actions | Not Started | Low | 4h | Team Member 3 | SETUP-001 |
+| DEPLOY-001 | Set up CI/CD pipeline with GitHub Actions | Not Started | Low | 4h | - | SETUP-001 |
 | DEPLOY-002 | Configure Render deployment for backend | Not Started | Low | 3h | - | BE-001 |
 | DEPLOY-003 | Set up frontend deployment | Not Started | Low | 3h | - | FE-001 |
 | DEPLOY-004 | Configure production database | Not Started | Low | 2h | - | DB-001, DB-002, DB-003, DB-004 |
