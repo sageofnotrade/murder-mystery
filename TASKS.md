@@ -21,17 +21,17 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 |----|-------|--------|----------|----------|----------|-------------|
 | SETUP-001 | Initialize Git repository | Completed | High | 1h | - | - |
 | SETUP-002 | Create project documentation (README, PLANNING, TASKS) | Completed | High | 3h | - | SETUP-001 |
-| SETUP-003 | Set up Supabase project | Not Started | High | 2h | - | - |
-| SETUP-004 | Configure Redis instance | Not Started | Medium | 2h | - | - |
-| SETUP-005 | Set up development environment | Not Started | High | 4h | - | - |
+| SETUP-003 | Set up Supabase project | In Progress | High | 2h | You | - |
+| SETUP-004 | Configure Redis instance | In Progress | Medium | 2h | You | - |
+| SETUP-005 | Set up development environment | In Progress | High | 4h | You | - |
 
 ### Frontend Tasks
 
 | ID | Title | Status | Priority | Estimate | Assignee | Dependencies |
 |----|-------|--------|----------|----------|----------|-------------|
-| FE-001 | Initialize Vue.js/Nuxt.js project | Not Started | High | 2h | - | SETUP-005 |
-| FE-002 | Set up Tailwind CSS | Not Started | High | 1h | - | FE-001 |
-| FE-003 | Implement authentication UI | Not Started | High | 4h | - | FE-001, FE-002 |
+| FE-001 | Initialize Vue.js/Nuxt.js project | Not Started | High | 2h | Team Member 1 | SETUP-005 |
+| FE-002 | Set up Tailwind CSS | Not Started | High | 1h | Team Member 2 | FE-001 |
+| FE-003 | Implement authentication UI | Not Started | High | 4h | Team Member 3 | FE-001, FE-002 |
 | FE-004 | Create psychological profile questionnaire UI | Not Started | Medium | 6h | - | FE-003 |
 | FE-005 | Develop narrative interface component | Not Started | High | 8h | - | FE-003 |
 | FE-006 | Implement basic detective board UI | Not Started | High | 10h | - | FE-003 |
@@ -44,9 +44,9 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 
 | ID | Title | Status | Priority | Estimate | Assignee | Dependencies |
 |----|-------|--------|----------|----------|----------|-------------|
-| BE-001 | Initialize Flask project | Not Started | High | 2h | - | SETUP-005 |
-| BE-002 | Set up Supabase authentication integration | Not Started | High | 4h | - | BE-001, SETUP-003 |
-| BE-003 | Implement user profile endpoints | Not Started | High | 4h | - | BE-002 |
+| BE-001 | Initialize Flask project | Not Started | High | 2h | Team Member 1 | SETUP-005 |
+| BE-002 | Set up Supabase authentication integration | Not Started | High | 4h | Team Member 2 | BE-001, SETUP-003 |
+| BE-003 | Implement user profile endpoints | Not Started | High | 4h | Team Member 3 | BE-002 |
 | BE-004 | Create mystery template storage and retrieval | Not Started | High | 6h | - | BE-001 |
 | BE-005 | Develop story progression endpoints | Not Started | High | 8h | - | BE-004 |
 | BE-006 | Implement clue management API | Not Started | Medium | 6h | - | BE-005 |
@@ -59,7 +59,7 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 
 | ID | Title | Status | Priority | Estimate | Assignee | Dependencies |
 |----|-------|--------|----------|----------|----------|-------------|
-| AI-001 | Set up Archon MCP framework | Not Started | High | 8h | - | BE-001 |
+| AI-001 | Set up Archon MCP framework | Not Started | High | 8h | Team Member 4 | BE-001 |
 | AI-002 | Implement StoryAgent with Pydantic models | Not Started | High | 10h | - | AI-001 |
 | AI-003 | Develop SuspectAgent with personality modeling | Not Started | Medium | 8h | - | AI-001 |
 | AI-004 | Create ClueAgent with evidence generation | Not Started | Medium | 8h | - | AI-001 |
@@ -74,8 +74,8 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 
 | ID | Title | Status | Priority | Estimate | Assignee | Dependencies |
 |----|-------|--------|----------|----------|----------|-------------|
-| DB-001 | Design and create user schema in Supabase | Not Started | High | 3h | - | SETUP-003 |
-| DB-002 | Implement mystery template schema | Not Started | High | 3h | - | SETUP-003 |
+| DB-001 | Design and create user schema in Supabase | Not Started | High | 3h | Team Member 1 | SETUP-003 |
+| DB-002 | Implement mystery template schema | Not Started | High | 3h | Team Member 4 | SETUP-003 |
 | DB-003 | Create story state storage schema | Not Started | High | 4h | - | DB-002 |
 | DB-004 | Design and implement board state schema | Not Started | Medium | 4h | - | DB-003 |
 | DB-005 | Set up Redis schema for caching | Not Started | Medium | 3h | - | SETUP-004 |
@@ -84,8 +84,8 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 
 | ID | Title | Status | Priority | Estimate | Assignee | Dependencies |
 |----|-------|--------|----------|----------|----------|-------------|
-| TEST-001 | Set up frontend testing framework | Not Started | Medium | 3h | - | FE-001 |
-| TEST-002 | Create backend unit tests | Not Started | Medium | 6h | - | BE-001 |
+| TEST-001 | Set up frontend testing framework | Not Started | Medium | 3h | Team Member 1 | FE-001 |
+| TEST-002 | Create backend unit tests | Not Started | Medium | 6h | Team Member 2 | BE-001 |
 | TEST-003 | Implement AI agent unit tests | Not Started | Medium | 8h | - | AI-001 |
 | TEST-004 | Develop integration tests for frontend-backend | Not Started | Medium | 6h | - | FE-005, BE-005 |
 | TEST-005 | Create end-to-end testing suite | Not Started | Low | 8h | - | FE-005, BE-005 |
@@ -94,7 +94,7 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 
 | ID | Title | Status | Priority | Estimate | Assignee | Dependencies |
 |----|-------|--------|----------|----------|----------|-------------|
-| DEPLOY-001 | Set up CI/CD pipeline with GitHub Actions | Not Started | Low | 4h | - | SETUP-001 |
+| DEPLOY-001 | Set up CI/CD pipeline with GitHub Actions | Not Started | Low | 4h | Team Member 3 | SETUP-001 |
 | DEPLOY-002 | Configure Render deployment for backend | Not Started | Low | 3h | - | BE-001 |
 | DEPLOY-003 | Set up frontend deployment | Not Started | Low | 3h | - | FE-001 |
 | DEPLOY-004 | Configure production database | Not Started | Low | 2h | - | DB-001, DB-002, DB-003, DB-004 |
@@ -196,3 +196,9 @@ This section will be updated as tasks are completed or modified:
 
 - **2023-05-01**: Completed SETUP-001 - Initialized Git repository
 - **2023-05-04**: Completed SETUP-002 - Created project documentation
+- **2023-05-10**: In Progress SETUP-003, SETUP-004, SETUP-005 - Setting up Supabase, Redis, and development environment
+  - Created frontend structure with Vue.js/Nuxt.js
+  - Created backend structure with Flask
+  - Set up basic authentication with Supabase
+  - Created database schema for Supabase
+  - Set up environment configuration
