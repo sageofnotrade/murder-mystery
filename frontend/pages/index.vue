@@ -1,33 +1,53 @@
 <template>
-  <div class="container mx-auto px-4 py-12">
-    <div class="text-center mb-12">
-      <h1 class="text-5xl font-bold mb-4 text-mystery-accent">Murþrą</h1>
-      <p class="text-xl text-gray-300 max-w-2xl mx-auto">
-        A personalized, AI-driven detective experience that adapts to your psychology and decisions, 
-        blending narrative storytelling with a visual investigation interface.
+  <div class="max-w-4xl mx-auto">
+    <section class="text-center mb-16">
+      <h1 class="text-5xl font-bold mb-6 bg-gradient-to-r from-mystery-accent to-mystery-accent/70 bg-clip-text text-transparent">
+        Welcome to Murþrą
+      </h1>
+      <p class="text-xl text-mystery-light mb-8">
+        A personalized, AI-driven detective experience that adapts to your psychology and decisions.
       </p>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-      <div class="bg-mystery-medium p-6 rounded-lg shadow-lg">
-        <h2 class="text-2xl font-bold mb-4 text-mystery-accent">Narrative Mode</h2>
-        <p class="mb-4">Engage in an immersive text-based detective experience that adapts to your choices and psychological profile.</p>
-        <button class="bg-mystery-accent text-white px-6 py-2 rounded hover:bg-opacity-80 transition">
-          Start Investigation
-        </button>
+      <div class="flex justify-center space-x-4">
+        <NuxtLink
+          to="/auth/register"
+          class="bg-mystery-accent text-mystery-dark px-8 py-3 rounded-lg text-lg font-semibold hover:bg-mystery-accent/90 transition-colors"
+        >
+          Start Your Mystery
+        </NuxtLink>
+        <NuxtLink
+          to="/about"
+          class="border border-mystery-accent text-mystery-accent px-8 py-3 rounded-lg text-lg font-semibold hover:bg-mystery-accent/10 transition-colors"
+        >
+          Learn More
+        </NuxtLink>
       </div>
-      
-      <div class="bg-mystery-medium p-6 rounded-lg shadow-lg">
-        <h2 class="text-2xl font-bold mb-4 text-mystery-accent">Detective Board</h2>
-        <p class="mb-4">Visualize your investigation with an interactive corkboard to connect clues and track suspects.</p>
-        <button class="bg-mystery-accent text-white px-6 py-2 rounded hover:bg-opacity-80 transition">
-          Open Detective Board
-        </button>
+    </section>
+
+    <section class="grid md:grid-cols-3 gap-8 mb-16">
+      <div class="bg-mystery-darker p-6 rounded-lg">
+        <h3 class="text-xl font-semibold mb-3 text-mystery-accent">AI-Driven Stories</h3>
+        <p class="text-mystery-light">
+          Each mystery is uniquely crafted based on your psychological profile and decisions.
+        </p>
       </div>
-    </div>
+      <div class="bg-mystery-darker p-6 rounded-lg">
+        <h3 class="text-xl font-semibold mb-3 text-mystery-accent">Visual Investigation</h3>
+        <p class="text-mystery-light">
+          Use our interactive detective board to connect clues and solve the mystery.
+        </p>
+      </div>
+      <div class="bg-mystery-darker p-6 rounded-lg">
+        <h3 class="text-xl font-semibold mb-3 text-mystery-accent">Dynamic Characters</h3>
+        <p class="text-mystery-light">
+          Interact with suspects who react and adapt to your investigation style.
+        </p>
+      </div>
+    </section>
   </div>
 </template>
 
-<script setup>
-// Home page component
+<script setup lang="ts">
+definePageMeta({
+  layout: 'default'
+})
 </script>

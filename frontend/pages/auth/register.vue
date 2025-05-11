@@ -48,6 +48,10 @@
         <div v-if="error" class="mt-4 text-red-500 text-sm text-center">
           {{ error }}
         </div>
+
+        <div v-if="success" class="mt-4 text-green-500 text-sm text-center">
+          {{ success }}
+        </div>
       </form>
       
       <div class="mt-6 text-center">
@@ -64,14 +68,21 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useSupabaseClient } from '#imports'
+import { useSupabaseClient, useSupabaseUser } from '#imports'
 
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
 const error = ref(null)
+const success = ref(null)
 const supabase = useSupabaseClient()
+const user = useSupabaseUser()
+
+// Redirect if already logged in
+if (user.value) {
+  navigateTo('/dashboard')
+}
 
 const passwordsMatch = computed(() => {
   return password.value === confirmPassword.value
@@ -81,23 +92,36 @@ const handleRegister = async () => {
   try {
     loading.value = true
     error.value = null
+    success.value = null
     
     if (!passwordsMatch.value) {
       error.value = 'Passwords do not match'
       return
     }
     
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.value,
-      password: password.value
+      password: password.value,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`
+      }
     })
     
     if (signUpError) {
       error.value = signUpError.message
+      return
+    }
+
+    if (data?.user) {
+      success.value = 'Registration successful! Please check your email for a confirmation link before signing in.'
+      // Clear the form
+      email.value = ''
+      password.value = ''
+      confirmPassword.value = ''
     }
   } catch (err) {
     error.value = 'An unexpected error occurred'
-    console.error(err)
+    console.error('Registration error:', err)
   } finally {
     loading.value = false
   }

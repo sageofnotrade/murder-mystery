@@ -7,15 +7,20 @@ export default defineNuxtConfig({
     '@nuxtjs/supabase'
   ],
   supabase: {
+    url: process.env.SUPABASE_URL,
+    key: process.env.SUPABASE_KEY,
     redirectOptions: {
       login: '/auth/login',
+      register: '/auth/register',
       callback: '/auth/callback',
-      exclude: ['/'],
+      exclude: ['/', '/auth/register', '/auth/login'],
     }
   },
   runtimeConfig: {
     public: {
-      apiUrl: process.env.VITE_API_URL || 'http://localhost:5000'
+      apiUrl: process.env.VITE_API_URL || 'http://localhost:5000',
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseKey: process.env.SUPABASE_KEY
     }
   },
   app: {

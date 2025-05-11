@@ -8,7 +8,7 @@ class Config:
     """Base configuration."""
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
     SUPABASE_URL = os.getenv('SUPABASE_URL')
-    SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
+    SUPABASE_KEY = os.getenv('SUPABASE_KEY')
     REDIS_URL = os.getenv('REDIS_REST_URL')
     REDIS_TOKEN = os.getenv('REDIS_REST_TOKEN')
     OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')

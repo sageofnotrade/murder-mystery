@@ -1,0 +1,60 @@
+<template>
+  <div class="min-h-screen bg-mystery-dark p-8">
+    <div class="max-w-4xl mx-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-mystery-accent">Welcome to Your Mystery</h1>
+        <button 
+          @click="handleLogout"
+          class="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition"
+        >
+          Log Out
+        </button>
+      </div>
+      
+      <div class="bg-mystery-medium p-6 rounded-lg shadow-lg mb-8">
+        <h2 class="text-xl font-semibold mb-4 text-mystery-accent">Get Started</h2>
+        <p class="text-mystery-light mb-6">
+          Let's create your first mystery. We'll need to understand your preferences and psychological profile to create a unique experience.
+        </p>
+        
+        <button 
+          @click="startProfileSetup"
+          class="bg-mystery-accent text-white py-2 px-6 rounded-md hover:bg-opacity-90 transition"
+        >
+          Begin Profile Setup
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { useRouter } from 'vue-router'
+import { useSupabaseClient, useSupabaseUser } from '#imports'
+
+const router = useRouter()
+const supabase = useSupabaseClient()
+const user = useSupabaseUser()
+
+// Redirect to login if not authenticated
+if (!user.value) {
+  navigateTo('/auth/login')
+}
+
+const startProfileSetup = () => {
+  // Navigate to profile setup page
+  router.push('/profile/setup')
+}
+
+const handleLogout = async () => {
+  try {
+    const { error } = await supabase.auth.signOut()
+    if (error) throw error
+    
+    // Redirect to login page after successful logout
+    await navigateTo('/auth/login')
+  } catch (error) {
+    console.error('Error logging out:', error.message)
+  }
+}
+</script> 

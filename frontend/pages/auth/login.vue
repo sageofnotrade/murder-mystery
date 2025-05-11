@@ -66,13 +66,19 @@ const handleLogin = async () => {
     loading.value = true
     error.value = null
     
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.value,
       password: password.value
     })
     
     if (signInError) {
       error.value = signInError.message
+      return
+    }
+
+    if (data?.user) {
+      // Successful login - redirect to dashboard
+      await navigateTo('/dashboard', { replace: true })
     }
   } catch (err) {
     error.value = 'An unexpected error occurred'

@@ -2,12 +2,13 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+from config import get_config
 
 # Load environment variables
 load_dotenv()
 
-# Import routes (to be created later)
-# from routes.auth import auth_bp
+# Import routes
+from routes.auth import auth_bp
 # from routes.users import users_bp
 # from routes.mysteries import mysteries_bp
 # from routes.stories import stories_bp
@@ -18,15 +19,18 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Configure app
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
-app.config['SUPABASE_URL'] = os.getenv('SUPABASE_URL')
-app.config['SUPABASE_KEY'] = os.getenv('SUPABASE_SERVICE_KEY')
-app.config['REDIS_URL'] = os.getenv('REDIS_REST_URL')
-app.config['REDIS_TOKEN'] = os.getenv('REDIS_REST_TOKEN')
+# Get configuration
+config = get_config()
 
-# Register blueprints (to be uncommented later)
-# app.register_blueprint(auth_bp, url_prefix='/api/auth')
+# Configure app
+app.config['SECRET_KEY'] = config.SECRET_KEY
+app.config['SUPABASE_URL'] = config.SUPABASE_URL
+app.config['SUPABASE_KEY'] = config.SUPABASE_KEY
+app.config['REDIS_URL'] = config.REDIS_URL
+app.config['REDIS_TOKEN'] = config.REDIS_TOKEN
+
+# Register blueprints
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
 # app.register_blueprint(users_bp, url_prefix='/api/users')
 # app.register_blueprint(mysteries_bp, url_prefix='/api/mysteries')
 # app.register_blueprint(stories_bp, url_prefix='/api/stories')
@@ -46,8 +50,8 @@ def health():
     return jsonify({
         'status': 'healthy',
         'services': {
-            'supabase': os.getenv('SUPABASE_URL') is not None,
-            'redis': os.getenv('REDIS_REST_URL') is not None
+            'supabase': config.SUPABASE_URL is not None,
+            'redis': config.REDIS_URL is not None
         }
     })
 
