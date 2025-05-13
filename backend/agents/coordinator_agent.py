@@ -3,7 +3,7 @@ CoordinatorAgent for the Murþrą application.
 Orchestrates inter-agent communication, maintains global consistency, and resolves conflicts.
 Enhanced with PydanticAI for better type safety and agent capabilities.
 Uses ModelRouter to select appropriate models for different tasks:
-- deepseek-rit-chimera for reasoning/analysis
+- deepseek-r1t-chimera for reasoning/analysis
 - mistral-nemo for writing/narrative
 """
 
@@ -329,7 +329,7 @@ class CoordinatorAgent(BaseAgent):
     def _llm_detect_conflicts(self, states: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Use ModelRouter to detect conflicts between agent states.
-        Uses deepseek-rit-chimera for analytical reasoning.
+        Uses deepseek-r1t-chimera for analytical reasoning.
 
         Args:
             states (Dict[str, Dict[str, Any]]): Dictionary of agent states
@@ -379,7 +379,7 @@ class CoordinatorAgent(BaseAgent):
             # Generate conflicts using the reasoning model
             response = self.model_router.complete(
                 messages=messages,
-                task_type="reasoning",  # Use deepseek-rit-chimera for analytical reasoning
+                task_type="reasoning",  # Use deepseek-r1t-chimera for analytical reasoning
                 temperature=0.3,  # Lower temperature for more consistent results
                 max_tokens=1000
             )
@@ -544,7 +544,7 @@ class CoordinatorAgent(BaseAgent):
     def _llm_resolve_conflict(self, conflict: Dict[str, Any], states: Dict[str, Dict[str, Any]]) -> ConflictResolution:
         """
         Use ModelRouter to resolve a conflict between agent states.
-        Uses deepseek-rit-chimera for analytical reasoning.
+        Uses deepseek-r1t-chimera for analytical reasoning.
 
         Args:
             conflict (Dict[str, Any]): Conflict to resolve
@@ -597,7 +597,7 @@ class CoordinatorAgent(BaseAgent):
             # Generate resolution using the reasoning model
             response = self.model_router.complete(
                 messages=messages,
-                task_type="reasoning",  # Use deepseek-rit-chimera for analytical reasoning
+                task_type="reasoning",  # Use deepseek-r1t-chimera for analytical reasoning
                 temperature=0.3,  # Lower temperature for more consistent results
                 max_tokens=1000
             )
@@ -904,7 +904,7 @@ class CoordinatorAgent(BaseAgent):
     def _llm_recommend_actions(self, input_data: dict) -> dict:
         """
         Use ModelRouter to recommend actions for agents based on the current state.
-        Uses deepseek-rit-chimera for analytical reasoning.
+        Uses deepseek-r1t-chimera for analytical reasoning.
 
         Args:
             input_data (dict): Should match CoordinatorInput
@@ -972,7 +972,7 @@ class CoordinatorAgent(BaseAgent):
             # Generate recommendations using the reasoning model
             response = self.model_router.complete(
                 messages=messages,
-                task_type="reasoning",  # Use deepseek-rit-chimera for analytical reasoning
+                task_type="reasoning",  # Use deepseek-r1t-chimera for analytical reasoning
                 temperature=0.5,  # Moderate temperature for creative but consistent results
                 max_tokens=1000
             )

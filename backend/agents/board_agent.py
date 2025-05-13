@@ -3,7 +3,7 @@ BoardAgent for the Murþrą application.
 Handles board state updates and visual connections using web search and LLMs.
 Enhanced with PydanticAI for better type safety and agent capabilities.
 Uses ModelRouter to select appropriate models for different tasks:
-- deepseek-rit-chimera for reasoning/analysis
+- deepseek-r1t-chimera for reasoning/analysis
 - mistral-nemo for writing/narrative
 """
 
@@ -483,7 +483,7 @@ class BoardAgent(BaseAgent):
         """
         Generate a board update using ModelRouter.
         Uses a two-step process:
-        1. First, use deepseek-rit-chimera to analyze the board and plan the update (reasoning)
+        1. First, use deepseek-r1t-chimera to analyze the board and plan the update (reasoning)
         2. Then, use mistral-nemo to write the actual board update (writing)
 
         Args:
@@ -535,7 +535,7 @@ class BoardAgent(BaseAgent):
             # Generate the board update plan using the reasoning model
             planning_response = self.model_router.complete(
                 messages=planning_messages,
-                task_type="reasoning",  # Use deepseek-rit-chimera for analytical reasoning
+                task_type="reasoning",  # Use deepseek-r1t-chimera for analytical reasoning
                 temperature=0.3,  # Lower temperature for planning
                 max_tokens=800
             )

@@ -2,7 +2,7 @@
 StoryAgent class for generating and managing interactive mystery stories.
 Enhanced with PydanticAI for better type safety and agent capabilities.
 Uses ModelRouter to select appropriate models for different tasks:
-- deepseek-rit-chimera for reasoning/analysis
+- deepseek-r1t-chimera for reasoning/analysis
 - mistral-nemo for writing/narrative
 """
 
@@ -523,7 +523,7 @@ class StoryAgent(BaseAgent):
         """
         Generate a story using the ModelRouter.
         Uses a two-step process:
-        1. First, use deepseek-rit-chimera to analyze and plan the story (reasoning)
+        1. First, use deepseek-r1t-chimera to analyze and plan the story (reasoning)
         2. Then, use mistral-nemo to write the actual story (writing)
         """
         # Format search results for the prompt
@@ -541,7 +541,7 @@ class StoryAgent(BaseAgent):
         # Determine player role from context
         player_role = context.get("player_role", "detective")
 
-        # STEP 1: Use deepseek-rit-chimera for story planning and analysis
+        # STEP 1: Use deepseek-r1t-chimera for story planning and analysis
         planning_system_prompt = (
             "You are an expert story planner and analyst. "
             "Your task is to create a detailed plan for a detective story. "
@@ -676,7 +676,7 @@ class StoryAgent(BaseAgent):
         """
         Generate narrative progression using the ModelRouter.
         Uses a two-step process:
-        1. First, use deepseek-rit-chimera to analyze the action and plan the narrative (reasoning)
+        1. First, use deepseek-r1t-chimera to analyze the action and plan the narrative (reasoning)
         2. Then, use mistral-nemo to write the actual narrative (writing)
         """
         import json
@@ -699,7 +699,7 @@ class StoryAgent(BaseAgent):
         # Determine player role from context
         player_role = context.get("player_role", "detective")
 
-        # STEP 1: Use deepseek-rit-chimera for action analysis and narrative planning
+        # STEP 1: Use deepseek-r1t-chimera for action analysis and narrative planning
         planning_system_prompt = (
             "You are an expert narrative analyst and planner. "
             "Your task is to analyze the player's action and plan the next part of the narrative. "
@@ -831,7 +831,7 @@ class StoryAgent(BaseAgent):
     def _extract_potential_clue(self, action: str, narrative: str) -> Optional[str]:
         """
         Extract potential clue from the narrative based on the action using ModelRouter.
-        Uses deepseek-rit-chimera for reasoning about potential clues.
+        Uses deepseek-r1t-chimera for reasoning about potential clues.
         """
         # Try using ModelRouter to extract clues
         try:
@@ -871,7 +871,7 @@ class StoryAgent(BaseAgent):
             # Use the reasoning model to extract clues
             response = self.model_router.complete(
                 messages=messages,
-                task_type="reasoning",  # Use deepseek-rit-chimera for analytical reasoning
+                task_type="reasoning",  # Use deepseek-r1t-chimera for analytical reasoning
                 temperature=0.2,  # Lower temperature for more consistent results
                 max_tokens=500
             )

@@ -231,7 +231,7 @@ This section will be updated as tasks are completed or modified:
 - **2023-11-30**: Completed AI-008 - Set up LLM API integration (Openrouter/Together.ai)
   - Implemented ModelRouter for intelligent model selection
   - Configured OpenRouter integration with PydanticAI
-  - Set up deepseek-rit-chimera model for reasoning/analysis tasks
+  - Set up deepseek-r1t-chimera model for reasoning/analysis tasks
   - Set up mistral-nemo model for writing/narrative tasks
   - Integrated ModelRouter with all agent classes
 - **2023-12-01**: Completed AI-001 - Set up PydanticAI framework

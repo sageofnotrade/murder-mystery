@@ -1,7 +1,7 @@
 """
 ModelRouter for the Murþrą application.
 Routes requests to different models based on task type.
-- Uses deepseek-rit-chimera for reasoning/analysis tasks
+- Uses deepseek-r1t-chimera for reasoning/analysis tasks
 - Uses mistral-nemo for writing/narrative tasks
 """
 
@@ -15,7 +15,7 @@ from typing import List, Dict, Any, Optional
 class ModelRouter:
     """
     A custom router that selects the appropriate model based on task type.
-    - Uses deepseek-rit-chimera for reasoning/analysis tasks
+    - Uses deepseek-r1t-chimera for reasoning/analysis tasks
     - Uses mistral-nemo for writing/narrative tasks
     """
     def __init__(self):
@@ -34,7 +34,7 @@ class ModelRouter:
         
         # Initialize models
         self.reasoning_model = OpenAIModel(
-            'tngtech/deepseek-rit-chimera:free',
+            'tngtech/deepseek-r1t-chimera:free',
             provider=self.provider,
         )
         
@@ -92,7 +92,7 @@ class ModelRouter:
         """
         model = self.get_model_for_task(task_type)
         if model == self.reasoning_model:
-            return "deepseek-rit-chimera"
+            return "deepseek-r1t-chimera"
         elif model == self.writing_model:
             return "mistral-nemo"
         else:

@@ -3,7 +3,7 @@ ClueAgent for the Murþrą application.
 Handles clue generation and updates using web search and LLMs.
 Enhanced with PydanticAI for better type safety and agent capabilities.
 Uses ModelRouter to select appropriate models for different tasks:
-- deepseek-rit-chimera for reasoning/analysis
+- deepseek-r1t-chimera for reasoning/analysis
 - mistral-nemo for writing/narrative
 """
 
@@ -293,7 +293,7 @@ class ClueAgent(BaseAgent):
     def _llm_generate_clue_data(self, prompt: str, context: dict, search_results: list[dict], memory_context: str = "") -> ClueData:
         """
         Generate a clue using the ModelRouter.
-        Uses deepseek-rit-chimera for analytical reasoning about clues.
+        Uses deepseek-r1t-chimera for analytical reasoning about clues.
 
         Args:
             prompt (str): Description of the clue to analyze.
@@ -350,7 +350,7 @@ class ClueAgent(BaseAgent):
             # Generate the clue using the reasoning model via ModelRouter
             response = self.model_router.complete(
                 messages=messages,
-                task_type="reasoning",  # Use deepseek-rit-chimera for analytical reasoning
+                task_type="reasoning",  # Use deepseek-r1t-chimera for analytical reasoning
                 temperature=0.7,
                 max_tokens=800
             )
@@ -420,7 +420,7 @@ class ClueAgent(BaseAgent):
     def _llm_generate_clue(self, prompt: str, context: dict, search_results: list[dict]) -> dict:
         """
         Generate a clue using the ModelRouter.
-        Uses deepseek-rit-chimera for analytical reasoning about clues.
+        Uses deepseek-r1t-chimera for analytical reasoning about clues.
         Legacy method for backward compatibility.
         """
         import json
@@ -464,7 +464,7 @@ class ClueAgent(BaseAgent):
             # Generate the clue using the reasoning model via ModelRouter
             response = self.model_router.complete(
                 messages=messages,
-                task_type="reasoning",  # Use deepseek-rit-chimera for analytical reasoning
+                task_type="reasoning",  # Use deepseek-r1t-chimera for analytical reasoning
                 temperature=0.7,
                 max_tokens=800
             )

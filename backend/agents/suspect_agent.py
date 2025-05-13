@@ -3,7 +3,7 @@ SuspectAgent for the Murþrą application.
 Handles suspect profile generation, dialogue, and behavior using web search and LLMs.
 Enhanced with PydanticAI for better type safety and agent capabilities.
 Uses ModelRouter to select appropriate models for different tasks:
-- deepseek-rit-chimera for reasoning/analysis
+- deepseek-r1t-chimera for reasoning/analysis
 - mistral-nemo for writing/narrative
 """
 
@@ -299,7 +299,7 @@ class SuspectAgent(BaseAgent):
         """
         Generate a suspect profile using the ModelRouter.
         Uses a two-step process:
-        1. First, use deepseek-rit-chimera to analyze and plan the profile (reasoning)
+        1. First, use deepseek-r1t-chimera to analyze and plan the profile (reasoning)
         2. Then, use mistral-nemo to write the actual profile (writing)
 
         Args:
@@ -511,7 +511,7 @@ class SuspectAgent(BaseAgent):
         """
         Generate dialogue for a suspect using the ModelRouter.
         Uses a two-step process:
-        1. First, use deepseek-rit-chimera to analyze and plan the dialogue (reasoning)
+        1. First, use deepseek-r1t-chimera to analyze and plan the dialogue (reasoning)
         2. Then, use mistral-nemo to write the actual dialogue (writing)
 
         Args:
