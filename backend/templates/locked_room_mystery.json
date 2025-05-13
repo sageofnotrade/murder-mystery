@@ -1,0 +1,240 @@
+{
+  "id": "locked-room-001",
+  "title": "The Sealed Chamber",
+  "description": "A classic locked-room mystery set in a remote mansion during a storm. The victim was found in a room locked from the inside with no apparent way in or out.",
+  "difficulty": "medium",
+  "estimated_time": "60-90 minutes",
+  "player_role": "detective",
+  "psychological_profile_weights": {
+    "analytical": 0.8,
+    "intuitive": 0.6,
+    "methodical": 0.7,
+    "creative": 0.5
+  },
+  "setting": {
+    "location": "Blackwood Manor",
+    "time_period": "1930s",
+    "weather": "Thunderstorm",
+    "mood": "Gothic, tense, isolated"
+  },
+  "victim": {
+    "name": "{{victim_name}}",
+    "description": "Wealthy industrialist and owner of the manor",
+    "cause_of_death": "Blunt force trauma to the head",
+    "time_of_death": "Between 10 PM and midnight",
+    "found_by": "{{witness_1}}",
+    "background": "Known for ruthless business practices and making enemies"
+  },
+  "crime_scene": {
+    "location": "Study on the second floor",
+    "locked_from": "inside",
+    "entry_points": ["Door (locked from inside)", "Window (sealed shut for decades)"],
+    "notable_features": [
+      "Heavy antique desk",
+      "Bookshelf with rare first editions",
+      "Fireplace with dying embers",
+      "Grandfather clock stopped at 11:17 PM"
+    ]
+  },
+  "suspects": [
+    {
+      "id": "suspect-001",
+      "name": "{{suspect_1}}",
+      "relationship": "Business partner",
+      "motive": "{{motive_1}}",
+      "alibi": "Claims to have been in the library all evening",
+      "alibi_strength": "weak",
+      "personality": "Calculating, composed, intelligent",
+      "secrets": ["Has been embezzling from the company", "Has gambling debts"],
+      "initial_suspicion": 7,
+      "guilty": true,
+      "guilt_evidence": ["Mud on shoes matching garden path", "Knowledge of secret passages"]
+    },
+    {
+      "id": "suspect-002",
+      "name": "{{suspect_2}}",
+      "relationship": "Estranged child of victim",
+      "motive": "{{motive_2}}",
+      "alibi": "Claims to have been in town until midnight",
+      "alibi_strength": "medium",
+      "personality": "Bitter, artistic, emotional",
+      "secrets": ["Was disinherited recently", "Has addiction issues"],
+      "initial_suspicion": 8,
+      "guilty": false,
+      "red_herring": "Argument with victim heard by staff earlier that day"
+    },
+    {
+      "id": "suspect-003",
+      "name": "{{suspect_3}}",
+      "relationship": "Household staff - butler",
+      "motive": "{{motive_3}}",
+      "alibi": "Claims to have been serving drinks in the parlor",
+      "alibi_strength": "strong",
+      "personality": "Proper, reserved, observant",
+      "secrets": ["Former criminal background", "In love with the victim's spouse"],
+      "initial_suspicion": 4,
+      "guilty": false,
+      "red_herring": "Has a key to every room in the house"
+    },
+    {
+      "id": "suspect-004",
+      "name": "{{suspect_4}}",
+      "relationship": "Victim's spouse",
+      "motive": "{{motive_4}}",
+      "alibi": "Claims to have been asleep in bedroom",
+      "alibi_strength": "weak",
+      "personality": "Charming, sophisticated, mysterious",
+      "secrets": ["Having an affair", "Substantial life insurance policy on victim"],
+      "initial_suspicion": 6,
+      "guilty": false,
+      "red_herring": "Argument about money overheard by staff"
+    }
+  ],
+  "clues": [
+    {
+      "id": "clue-001",
+      "type": "physical",
+      "description": "A bloodied candlestick",
+      "location": "Behind the desk",
+      "visibility": "hidden",
+      "relevance": "Murder weapon",
+      "fingerprints": ["Suspect-001", "Victim"],
+      "discovery_difficulty": "medium"
+    },
+    {
+      "id": "clue-002",
+      "type": "physical",
+      "description": "Muddy footprints",
+      "location": "Near the fireplace",
+      "visibility": "obvious",
+      "relevance": "Shows someone came through the chimney",
+      "matches": "Suspect-001's shoes",
+      "discovery_difficulty": "easy"
+    },
+    {
+      "id": "clue-003",
+      "type": "environmental",
+      "description": "Soot in the fireplace disturbed",
+      "location": "Fireplace",
+      "visibility": "subtle",
+      "relevance": "Indicates someone climbed down the chimney",
+      "discovery_difficulty": "hard"
+    },
+    {
+      "id": "clue-004",
+      "type": "document",
+      "description": "Torn letter about business betrayal",
+      "location": "Victim's pocket",
+      "visibility": "hidden",
+      "relevance": "Shows victim knew about embezzlement",
+      "discovery_difficulty": "medium"
+    },
+    {
+      "id": "clue-005",
+      "type": "testimony",
+      "description": "Witness heard climbing sounds",
+      "source": "Maid in adjacent room",
+      "reliability": "medium",
+      "relevance": "Confirms someone used the chimney",
+      "discovery_difficulty": "medium"
+    },
+    {
+      "id": "clue-006",
+      "type": "physical",
+      "description": "Secret lever in bookcase",
+      "location": "Behind specific book",
+      "visibility": "hidden",
+      "relevance": "Reveals passage to adjacent room",
+      "discovery_difficulty": "very hard"
+    }
+  ],
+  "red_herrings": [
+    {
+      "id": "red-herring-001",
+      "description": "Broken window latch",
+      "location": "Window",
+      "misleading_conclusion": "Someone broke in through window",
+      "actual_explanation": "Broken months ago, window still sealed shut"
+    },
+    {
+      "id": "red-herring-002",
+      "description": "Threatening letter",
+      "location": "Desk drawer",
+      "misleading_conclusion": "Victim was being blackmailed",
+      "actual_explanation": "Old letter from unrelated dispute"
+    },
+    {
+      "id": "red-herring-003",
+      "description": "Victim's missing watch",
+      "location": "Not found",
+      "misleading_conclusion": "Robbery motive",
+      "actual_explanation": "Victim pawned it weeks ago for gambling debts"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "7:00 PM",
+      "event": "Dinner served in dining room"
+    },
+    {
+      "time": "8:30 PM",
+      "event": "Victim announces business meeting in study"
+    },
+    {
+      "time": "9:15 PM",
+      "event": "Suspect-001 seen heading to gardens"
+    },
+    {
+      "time": "10:00 PM",
+      "event": "Victim last seen alive entering study"
+    },
+    {
+      "time": "10:30 PM (approx)",
+      "event": "Maid hears climbing sounds"
+    },
+    {
+      "time": "11:17 PM",
+      "event": "Time of death (clock stopped)"
+    },
+    {
+      "time": "8:00 AM next day",
+      "event": "Body discovered"
+    }
+  ],
+  "solution": {
+    "perpetrator": "Suspect-001",
+    "method": "Climbed onto roof during storm, entered through chimney, committed murder, left through secret passage, then returned to house normally",
+    "motive": "Victim discovered embezzlement and threatened to expose suspect",
+    "key_evidence": ["Muddy footprints", "Soot disturbance", "Secret passage", "Torn letter"]
+  },
+  "narrative_hooks": [
+    "The storm has made the roads impassable - everyone is trapped in the mansion",
+    "The detective (player) was invited to discuss security but arrived too late",
+    "Local police cannot arrive until morning due to flooding",
+    "The mansion has a history of mysterious deaths"
+  ],
+  "player_abilities": {
+    "forensic_analysis": true,
+    "character_interviews": true,
+    "search_locations": true,
+    "review_documents": true,
+    "psychological_profiling": true
+  },
+  "difficulty_adjustments": {
+    "easy": {
+      "additional_clues": ["Butler mentions secret passages in the house", "Gardener saw suspect on roof"],
+      "suspect_behavior": "Guilty party acts nervous and contradicts themselves"
+    },
+    "hard": {
+      "remove_clues": ["Muddy footprints"],
+      "add_red_herrings": ["Poison found in victim's drink (unrelated to death)"],
+      "suspect_behavior": "All suspects lie about minor details"
+    }
+  },
+  "psychological_elements": {
+    "claustrophobia": "Isolated mansion, storm, no escape",
+    "paranoia": "Anyone could be the killer, trust no one",
+    "family_trauma": "Dysfunctional relationships, old wounds",
+    "greed": "Inheritance, business dealings, betrayal"
+  }
+}

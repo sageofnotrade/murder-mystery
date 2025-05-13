@@ -1,0 +1,306 @@
+{
+  "id": "suspect-001",
+  "title": "The Forgotten Night",
+  "description": "A psychological thriller where the player is the prime suspect in a murder but has no memory of the night in question. They must navigate the investigation while uncovering their own involvement.",
+  "difficulty": "hard",
+  "estimated_time": "90-120 minutes",
+  "player_role": "suspect",
+  "psychological_profile_weights": {
+    "paranoid": 0.9,
+    "analytical": 0.6,
+    "empathetic": 0.4,
+    "deceptive": 0.7
+  },
+  "setting": {
+    "location": "Modern city apartment and surrounding urban areas",
+    "time_period": "Present day",
+    "weather": "Rainy, foggy nights",
+    "mood": "Paranoid, disorienting, uncertain"
+  },
+  "victim": {
+    "name": "{{victim_name}}",
+    "description": "Former colleague and romantic interest",
+    "relationship_to_player": "Complicated past, recent reconnection",
+    "cause_of_death": "Multiple stab wounds",
+    "time_of_death": "Between midnight and 2 AM",
+    "found_by": "Neighbor who heard a disturbance",
+    "background": "Rising star at the company, recently received promotion player was in line for"
+  },
+  "crime_scene": {
+    "location": "Victim's apartment",
+    "entry_points": ["Front door (no forced entry)", "Fire escape window (unlocked)"],
+    "notable_features": [
+      "Signs of struggle",
+      "Wine glasses for two people",
+      "Player's personal item found under couch",
+      "Victim's phone with text messages to player"
+    ]
+  },
+  "player_character": {
+    "id": "player",
+    "name": "{{player_name}}",
+    "occupation": "Marketing executive at same company as victim",
+    "known_motive": "Professional rivalry, possible romantic rejection",
+    "memory_state": "Blackout from drinking, fragmentary memories of argument",
+    "physical_evidence": ["Cuts on hands", "Victim's blood on clothing", "No alibi for time of murder"],
+    "is_player": true,
+    "actual_guilt": "partial",
+    "truth": "Was at the scene and had an argument but left before the murder; was framed by the real killer"
+  },
+  "suspects": [
+    {
+      "id": "suspect-001",
+      "name": "{{suspect_1}}",
+      "relationship": "Victim's current romantic partner",
+      "motive": "{{motive_1}}",
+      "alibi": "Claims to have been at a business dinner",
+      "alibi_strength": "weak",
+      "personality": "Jealous, controlling, successful",
+      "secrets": ["History of domestic violence", "Financial troubles"],
+      "initial_suspicion": 5,
+      "guilty": true,
+      "guilt_evidence": ["Hidden camera footage", "Threatening texts to victim"]
+    },
+    {
+      "id": "suspect-002",
+      "name": "{{suspect_2}}",
+      "relationship": "Victim's business rival",
+      "motive": "{{motive_2}}",
+      "alibi": "Claims to have been at home alone",
+      "alibi_strength": "weak",
+      "personality": "Ambitious, ruthless, charismatic",
+      "secrets": ["Industrial espionage", "Bribed victim for information"],
+      "initial_suspicion": 6,
+      "guilty": false,
+      "red_herring": "Secret meeting with victim day before murder"
+    },
+    {
+      "id": "suspect-003",
+      "name": "{{suspect_3}}",
+      "relationship": "Victim's roommate",
+      "motive": "{{motive_3}}",
+      "alibi": "Claims to have been staying at parents' house",
+      "alibi_strength": "medium",
+      "personality": "Quiet, resentful, organized",
+      "secrets": ["Unrequited feelings for victim", "Stealing from victim"],
+      "initial_suspicion": 4,
+      "guilty": false,
+      "red_herring": "Argument with victim about missing money"
+    }
+  ],
+  "investigators": [
+    {
+      "id": "investigator-001",
+      "name": "Detective {{detective_name}}",
+      "personality": "Methodical, suspicious, experienced",
+      "belief_in_player_guilt": 0.8,
+      "interrogation_style": "Psychological pressure, catching contradictions",
+      "weakness": "Confirmation bias - once suspects someone, looks only for confirming evidence"
+    },
+    {
+      "id": "investigator-002",
+      "name": "Detective {{detective_2_name}}",
+      "personality": "Empathetic, intuitive, younger",
+      "belief_in_player_guilt": 0.4,
+      "interrogation_style": "Building rapport, open-ended questions",
+      "weakness": "Can be manipulated by emotional appeals"
+    }
+  ],
+  "clues": [
+    {
+      "id": "clue-001",
+      "type": "physical",
+      "description": "Security camera footage",
+      "location": "Building lobby",
+      "visibility": "hidden",
+      "relevance": "Shows player leaving before time of death",
+      "discovery_difficulty": "hard",
+      "accessible_to_player": false
+    },
+    {
+      "id": "clue-002",
+      "type": "digital",
+      "description": "Text message thread",
+      "location": "Player's phone",
+      "visibility": "obvious",
+      "relevance": "Shows argument but also reconciliation",
+      "discovery_difficulty": "easy",
+      "accessible_to_player": true
+    },
+    {
+      "id": "clue-003",
+      "type": "physical",
+      "description": "Hidden camera in victim's apartment",
+      "location": "Bookshelf",
+      "visibility": "very hidden",
+      "relevance": "Placed by Suspect-001 to spy on victim",
+      "discovery_difficulty": "very hard",
+      "accessible_to_player": false
+    },
+    {
+      "id": "clue-004",
+      "type": "testimony",
+      "description": "Neighbor saw someone matching Suspect-001's description",
+      "source": "Elderly neighbor with poor eyesight",
+      "reliability": "low",
+      "relevance": "Places real killer at scene after player left",
+      "discovery_difficulty": "medium",
+      "accessible_to_player": true
+    },
+    {
+      "id": "clue-005",
+      "type": "physical",
+      "description": "Distinctive knife wound pattern",
+      "location": "Autopsy report",
+      "visibility": "hidden",
+      "relevance": "Matches Suspect-001's military training",
+      "discovery_difficulty": "hard",
+      "accessible_to_player": false
+    },
+    {
+      "id": "clue-006",
+      "type": "memory",
+      "description": "Flashback of leaving apartment",
+      "trigger": "Visiting crime scene",
+      "reliability": "medium",
+      "relevance": "Player remembers leaving victim alive",
+      "discovery_difficulty": "medium",
+      "accessible_to_player": true
+    }
+  ],
+  "memory_fragments": [
+    {
+      "id": "memory-001",
+      "trigger": "Seeing wine bottle",
+      "content": "Argument about work promotion",
+      "emotional_tone": "Angry, betrayed",
+      "reliability": "medium"
+    },
+    {
+      "id": "memory-002",
+      "trigger": "Hearing specific song",
+      "content": "Reconciliation and emotional conversation",
+      "emotional_tone": "Bittersweet, closure",
+      "reliability": "high"
+    },
+    {
+      "id": "memory-003",
+      "trigger": "Smell of specific perfume/cologne",
+      "content": "Seeing someone watching the apartment from across the street",
+      "emotional_tone": "Uneasy, observed",
+      "reliability": "low"
+    },
+    {
+      "id": "memory-004",
+      "trigger": "Touch of similar fabric",
+      "content": "Helping victim with bleeding cut from broken glass",
+      "emotional_tone": "Concerned, intimate",
+      "reliability": "high"
+    }
+  ],
+  "red_herrings": [
+    {
+      "id": "red-herring-001",
+      "description": "Player's fingerprints on murder weapon",
+      "location": "Kitchen knife",
+      "misleading_conclusion": "Player used it for murder",
+      "actual_explanation": "Used it earlier to cut food during dinner"
+    },
+    {
+      "id": "red-herring-002",
+      "description": "Threatening email from player to victim",
+      "location": "Victim's computer",
+      "misleading_conclusion": "Player had violent intentions",
+      "actual_explanation": "Out of context work discussion about 'killing the competition'"
+    },
+    {
+      "id": "red-herring-003",
+      "description": "Player's medication",
+      "location": "Bathroom cabinet",
+      "misleading_conclusion": "Player has violent tendencies or mental illness",
+      "actual_explanation": "Common anxiety medication unrelated to case"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "7:00 PM",
+      "event": "Player arrives at victim's apartment for dinner"
+    },
+    {
+      "time": "8:30 PM",
+      "event": "Argument begins about work promotion"
+    },
+    {
+      "time": "9:45 PM",
+      "event": "Reconciliation and emotional conversation"
+    },
+    {
+      "time": "10:30 PM",
+      "event": "Player leaves apartment (victim still alive)"
+    },
+    {
+      "time": "11:15 PM",
+      "event": "Suspect-001 arrives at victim's apartment (unseen by player)"
+    },
+    {
+      "time": "12:30 AM",
+      "event": "Murder occurs"
+    },
+    {
+      "time": "2:15 AM",
+      "event": "Body discovered by neighbor"
+    },
+    {
+      "time": "4:30 AM",
+      "event": "Player awakens with hangover and fragmentary memories"
+    },
+    {
+      "time": "7:00 AM",
+      "event": "Police arrive at player's apartment"
+    }
+  ],
+  "solution": {
+    "perpetrator": "Suspect-001",
+    "method": "Used own key to enter after player left, confronted victim about seeing player, murder in rage",
+    "motive": "Jealousy over victim's reconnection with player",
+    "key_evidence": ["Hidden camera", "Distinctive knife wounds", "Lobby security footage", "Neighbor testimony"]
+  },
+  "player_options": {
+    "cooperate_with_police": {
+      "benefits": ["Access to some evidence", "Building trust with Detective-002"],
+      "risks": ["Self-incrimination", "Limited freedom of movement"]
+    },
+    "investigate_independently": {
+      "benefits": ["Freedom to explore locations", "Direct evidence gathering"],
+      "risks": ["Appearing more guilty", "Potential legal consequences", "Danger from real killer"]
+    },
+    "confront_suspects": {
+      "benefits": ["Potential confessions", "New information"],
+      "risks": ["Physical danger", "Alerting killer", "Legal consequences"]
+    }
+  },
+  "psychological_elements": {
+    "memory_reliability": "Questioning own memories and perceptions",
+    "gaslighting": "Real killer may attempt to manipulate player's fragile memory",
+    "paranoia": "Police watching, being followed, not knowing who to trust",
+    "guilt": "Responsibility for argument that may have led to murder"
+  },
+  "narrative_paths": {
+    "confession": {
+      "trigger": "Overwhelming evidence against player",
+      "outcome": "False confession, bad ending"
+    },
+    "framed": {
+      "trigger": "Failure to find key evidence",
+      "outcome": "Player convicted, bad ending"
+    },
+    "vindication": {
+      "trigger": "Discovering all key evidence",
+      "outcome": "Real killer caught, good ending"
+    },
+    "vigilante": {
+      "trigger": "Confronting killer without police",
+      "outcome": "Morally ambiguous ending, evidence lost"
+    }
+  }
+}

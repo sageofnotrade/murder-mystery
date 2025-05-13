@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     psychological_traits JSONB DEFAULT '{}'::JSONB,
     preferences JSONB DEFAULT '{}'::JSONB,
     play_history JSONB DEFAULT '{}'::JSONB,
+    mem0_user_id TEXT,
     UNIQUE(user_id)
 );
 
@@ -78,7 +79,8 @@ CREATE TABLE IF NOT EXISTS stories (
     current_scene TEXT,
     narrative_history JSONB DEFAULT '[]'::JSONB,
     discovered_clues JSONB DEFAULT '[]'::JSONB,
-    suspect_states JSONB DEFAULT '{}'::JSONB
+    suspect_states JSONB DEFAULT '{}'::JSONB,
+    mem0_run_id TEXT
 );
 
 -- Create RLS policies for stories

@@ -1,0 +1,344 @@
+{
+  "id": "witness-001",
+  "title": "The Silent Observer",
+  "description": "A mystery where the player is the sole witness to a murder in a small coastal town, but their testimony is questioned due to their outsider status and personal connection to the victim.",
+  "difficulty": "medium",
+  "estimated_time": "75-100 minutes",
+  "player_role": "witness",
+  "psychological_profile_weights": {
+    "observant": 0.9,
+    "empathetic": 0.7,
+    "anxious": 0.6,
+    "determined": 0.8
+  },
+  "setting": {
+    "location": "Seaside town of Mistport",
+    "time_period": "Present day",
+    "weather": "Foggy, misty coastal conditions",
+    "mood": "Isolated, unwelcoming to outsiders, secretive"
+  },
+  "victim": {
+    "name": "{{victim_name}}",
+    "description": "Local artist and childhood friend of player",
+    "relationship_to_player": "Reconnected after years apart, invited player to visit",
+    "cause_of_death": "Pushed from cliff edge",
+    "time_of_death": "Dusk, approximately 7:30 PM",
+    "found_by": "Local fisherman the next morning",
+    "background": "Recently returned to hometown after success in city, stirring resentment"
+  },
+  "crime_scene": {
+    "location": "Clifftop overlooking harbor",
+    "entry_points": ["Hiking trail", "Hidden path from beach"],
+    "notable_features": [
+      "Scenic overlook",
+      "Artist's easel and supplies",
+      "Partial footprints in mud",
+      "Broken fence section"
+    ]
+  },
+  "player_character": {
+    "id": "player",
+    "name": "{{player_name}}",
+    "occupation": "Journalist/Photographer",
+    "relationship_to_town": "Visited as child, now an outsider",
+    "witness_perspective": "Saw struggle and fall from distance while photographing sunset",
+    "limitations": ["Foggy conditions limited visibility", "Didn't see attacker's face clearly", "No local connections or credibility"],
+    "is_player": true,
+    "personal_stake": "Childhood connection to victim, guilt over lost years of friendship"
+  },
+  "suspects": [
+    {
+      "id": "suspect-001",
+      "name": "{{suspect_1}}",
+      "relationship": "Town mayor and real estate developer",
+      "motive": "{{motive_1}}",
+      "alibi": "Claims to have been at town meeting",
+      "alibi_strength": "medium",
+      "personality": "Charismatic, controlling, ambitious",
+      "secrets": ["Plans to develop protected land victim was documenting", "Bribed environmental officials"],
+      "initial_suspicion": 6,
+      "guilty": true,
+      "guilt_evidence": ["Mud on shoes matching crime scene", "Threatening email to victim"]
+    },
+    {
+      "id": "suspect-002",
+      "name": "{{suspect_2}}",
+      "relationship": "Victim's ex-partner and business associate",
+      "motive": "{{motive_2}}",
+      "alibi": "Claims to have been at gallery opening in next town",
+      "alibi_strength": "weak",
+      "personality": "Passionate, artistic, temperamental",
+      "secrets": ["Still in love with victim", "Financial dispute over shared artwork"],
+      "initial_suspicion": 8,
+      "guilty": false,
+      "red_herring": "Public argument with victim day before murder"
+    },
+    {
+      "id": "suspect-003",
+      "name": "{{suspect_3}}",
+      "relationship": "Local fisherman and victim's childhood rival",
+      "motive": "{{motive_3}}",
+      "alibi": "Claims to have been on boat",
+      "alibi_strength": "weak",
+      "personality": "Gruff, traditional, resentful",
+      "secrets": ["Land dispute with victim's family", "Threatened victim previously"],
+      "initial_suspicion": 7,
+      "guilty": false,
+      "red_herring": "Seen arguing with victim at harbor earlier that day"
+    },
+    {
+      "id": "suspect-004",
+      "name": "{{suspect_4}}",
+      "relationship": "Local environmental activist",
+      "motive": "{{motive_4}}",
+      "alibi": "Claims to have been at protest meeting",
+      "alibi_strength": "strong",
+      "personality": "Passionate, idealistic, outspoken",
+      "secrets": ["Previously arrested for trespassing", "Romantic interest in victim"],
+      "initial_suspicion": 4,
+      "guilty": false,
+      "red_herring": "Victim's phone shows multiple calls from suspect"
+    }
+  ],
+  "investigators": [
+    {
+      "id": "investigator-001",
+      "name": "Sheriff {{sheriff_name}}",
+      "personality": "Skeptical of outsiders, protective of town",
+      "belief_in_player_testimony": 0.3,
+      "investigation_style": "Dismissive, looking for simple explanation",
+      "relationship_to_suspects": "Long-time friends with mayor (Suspect-001)",
+      "weakness": "Loyalty to town over truth"
+    },
+    {
+      "id": "investigator-002",
+      "name": "Deputy {{deputy_name}}",
+      "personality": "Younger, more open-minded, ambitious",
+      "belief_in_player_testimony": 0.7,
+      "investigation_style": "Thorough, by-the-book",
+      "relationship_to_suspects": "New to town, fewer connections",
+      "weakness": "Inexperienced, can be intimidated by sheriff"
+    }
+  ],
+  "townspeople": [
+    {
+      "id": "townsperson-001",
+      "name": "{{elder_name}}",
+      "role": "Town historian",
+      "helpfulness": "high",
+      "knowledge": "Knows town secrets and history",
+      "attitude_to_player": "Cautiously friendly"
+    },
+    {
+      "id": "townsperson-002",
+      "name": "{{shopkeeper_name}}",
+      "role": "Local shop owner",
+      "helpfulness": "medium",
+      "knowledge": "Observes town gossip and movements",
+      "attitude_to_player": "Suspicious but can be won over"
+    },
+    {
+      "id": "townsperson-003",
+      "name": "{{bartender_name}}",
+      "role": "Harbor bar owner",
+      "helpfulness": "high",
+      "knowledge": "Hears drunk confessions and rumors",
+      "attitude_to_player": "Neutral, values information"
+    }
+  ],
+  "clues": [
+    {
+      "id": "clue-001",
+      "type": "physical",
+      "description": "Distinctive boot print",
+      "location": "Mud near cliff edge",
+      "visibility": "medium",
+      "relevance": "Matches Suspect-001's custom boots",
+      "discovery_difficulty": "medium"
+    },
+    {
+      "id": "clue-002",
+      "type": "digital",
+      "description": "Victim's photographs",
+      "location": "Cloud backup on victim's laptop",
+      "visibility": "hidden",
+      "relevance": "Shows environmental damage caused by Suspect-001's company",
+      "discovery_difficulty": "hard"
+    },
+    {
+      "id": "clue-003",
+      "type": "testimony",
+      "description": "Fisherman saw mayor's car",
+      "source": "Reluctant fisherman afraid of retaliation",
+      "reliability": "medium",
+      "relevance": "Places Suspect-001 near scene despite alibi",
+      "discovery_difficulty": "hard"
+    },
+    {
+      "id": "clue-004",
+      "type": "document",
+      "description": "Threatening letter",
+      "location": "Victim's studio",
+      "visibility": "hidden",
+      "relevance": "Shows Suspect-001 warned victim to stop investigation",
+      "discovery_difficulty": "medium"
+    },
+    {
+      "id": "clue-005",
+      "type": "environmental",
+      "description": "Broken camera with partial image",
+      "location": "Bottom of cliff",
+      "visibility": "hidden",
+      "relevance": "Shows partial image of attacker's distinctive jacket",
+      "discovery_difficulty": "hard"
+    },
+    {
+      "id": "clue-006",
+      "type": "testimony",
+      "description": "Bartender overheard planning",
+      "source": "Harbor bar owner",
+      "reliability": "medium",
+      "relevance": "Suspect-001 discussed 'handling problem' on phone",
+      "discovery_difficulty": "medium"
+    }
+  ],
+  "player_photographs": [
+    {
+      "id": "photo-001",
+      "description": "Sunset landscape including cliff",
+      "captured_evidence": "Distant figures in struggle",
+      "clarity": "low - foggy conditions",
+      "enhancement_possible": true,
+      "enhanced_reveals": "Distinctive jacket worn by Suspect-001"
+    },
+    {
+      "id": "photo-002",
+      "description": "Harbor earlier that day",
+      "captured_evidence": "Suspect-001's car in background",
+      "clarity": "medium",
+      "enhancement_possible": true,
+      "enhanced_reveals": "License plate matching mayor's vehicle"
+    },
+    {
+      "id": "photo-003",
+      "description": "Town meeting documentation",
+      "captured_evidence": "Suspect-001 leaving early",
+      "clarity": "high",
+      "enhancement_possible": false,
+      "contradicts": "Suspect-001's alibi of being at entire meeting"
+    }
+  ],
+  "red_herrings": [
+    {
+      "id": "red-herring-001",
+      "description": "Victim's ex-partner's scarf",
+      "location": "Near crime scene",
+      "misleading_conclusion": "Suspect-002 was present",
+      "actual_explanation": "Given to victim as gift days earlier"
+    },
+    {
+      "id": "red-herring-002",
+      "description": "Anonymous threats",
+      "location": "Victim's email",
+      "misleading_conclusion": "Suspect-003 threatened victim",
+      "actual_explanation": "Related to unrelated online art criticism"
+    },
+    {
+      "id": "red-herring-003",
+      "description": "Missing valuable painting",
+      "location": "Victim's studio",
+      "misleading_conclusion": "Robbery motive",
+      "actual_explanation": "Moved to gallery for upcoming show"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "Morning",
+      "event": "Victim meets with environmental officials"
+    },
+    {
+      "time": "Noon",
+      "event": "Player and victim have lunch, discuss old times"
+    },
+    {
+      "time": "2:00 PM",
+      "event": "Victim argues with Suspect-003 at harbor"
+    },
+    {
+      "time": "4:30 PM",
+      "event": "Victim goes to cliff to paint sunset"
+    },
+    {
+      "time": "5:45 PM",
+      "event": "Player goes to nearby lookout to photograph sunset"
+    },
+    {
+      "time": "6:30 PM",
+      "event": "Suspect-001 leaves town meeting early"
+    },
+    {
+      "time": "7:15 PM",
+      "event": "Suspect-001 confronts victim at cliff"
+    },
+    {
+      "time": "7:30 PM",
+      "event": "Murder occurs, witnessed partially by player"
+    },
+    {
+      "time": "7:45 PM",
+      "event": "Player rushes to cliff but finds no one"
+    },
+    {
+      "time": "8:30 PM",
+      "event": "Player reports to sheriff, met with skepticism"
+    }
+  ],
+  "solution": {
+    "perpetrator": "Suspect-001",
+    "method": "Confronted victim about environmental documentation, argument escalated to physical struggle",
+    "motive": "Victim's photographs would expose illegal development and environmental violations",
+    "key_evidence": ["Boot prints", "Broken camera image", "Fisherman testimony", "Player's enhanced photographs"]
+  },
+  "player_abilities": {
+    "photography": {
+      "description": "Can take and enhance photographs",
+      "limitations": "Requires proper equipment and expertise"
+    },
+    "journalism": {
+      "description": "Can interview townspeople and research backgrounds",
+      "limitations": "Townspeople may be reluctant to speak to outsider"
+    },
+    "observation": {
+      "description": "Can notice details others miss",
+      "limitations": "Must be in right place at right time"
+    },
+    "personal_connection": {
+      "description": "Can leverage connection to victim for information",
+      "limitations": "Emotional involvement may cloud judgment"
+    }
+  },
+  "narrative_paths": {
+    "official_justice": {
+      "requirements": ["Convince deputy", "Gather official evidence", "Work within system"],
+      "outcome": "Suspect arrested through proper channels, good ending"
+    },
+    "media_exposure": {
+      "requirements": ["Gather photographic evidence", "Contact outside media", "Create public pressure"],
+      "outcome": "Case gets national attention, mixed ending (justice but town suffers)"
+    },
+    "vigilante_justice": {
+      "requirements": ["Confront killer directly", "Obtain confession", "Personal risk"],
+      "outcome": "Personal resolution but official case remains open, bittersweet ending"
+    },
+    "town_conspiracy": {
+      "requirements": ["Fail to gather sufficient evidence", "Face increasing hostility"],
+      "outcome": "Forced to leave town, case unsolved, bad ending"
+    }
+  },
+  "psychological_elements": {
+    "outsider_syndrome": "Player as distrusted outsider in closed community",
+    "survivor_guilt": "Why was friend killed while player survived?",
+    "gaslighting": "Town authorities dismissing valid observations",
+    "moral_responsibility": "Obligation to get justice for childhood friend"
+  }
+}

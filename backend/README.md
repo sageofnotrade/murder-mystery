@@ -9,7 +9,7 @@ This directory contains the Flask backend for the Murþrą murder mystery applic
 - Redis for caching
 - Archon MCP for AI agent orchestration
 - Pydantic AI for LLM integration
-- mem0 for persistent memory
+- Mem0 for persistent memory and context enhancement
 
 ## Setup Instructions
 

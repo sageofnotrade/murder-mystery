@@ -12,7 +12,7 @@ Murþrą is a personalized, AI-driven detective experience that adapts to the pl
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │                 │     │                 │     │                 │
 │  Vue.js Frontend│◄────┤  Flask Backend  │◄────┤   AI Agents     │
-│  (Nuxt.js)      │     │                 │     │   (Archon MCP)  │
+│  (Nuxt.js)      │     │                 │     │   (PydanticAI)  │
 │                 │     │                 │     │                 │
 └────────┬────────┘     └────────┬────────┘     └────────┬────────┘
          │                       │                       │
@@ -75,7 +75,7 @@ Murþrą is a personalized, AI-driven detective experience that adapts to the pl
 
 ### Agent System
 
-The AI system is built on a modular agent architecture using the Archon MCP framework:
+The AI system is built on a modular agent architecture using the PydanticAI framework:
 
 1. **StoryAgent**
    - Responsibilities:
@@ -84,6 +84,7 @@ The AI system is built on a modular agent architecture using the Archon MCP fram
      - Adapt narrative tone to player psychology
    - Inputs: Player actions, story state, player profile
    - Outputs: Narrative text, story state updates
+   - Implementation: Pydantic models with PydanticAI agent tools
 
 2. **SuspectAgent**
    - Responsibilities:
@@ -92,6 +93,7 @@ The AI system is built on a modular agent architecture using the Archon MCP fram
      - Manage alibis, motives, and inconsistencies
    - Inputs: Player interactions, story context
    - Outputs: Suspect responses, updated suspect states
+   - Implementation: Pydantic models with PydanticAI agent tools
 
 3. **ClueAgent**
    - Responsibilities:
@@ -100,6 +102,7 @@ The AI system is built on a modular agent architecture using the Archon MCP fram
      - Create logical connections between evidence
    - Inputs: Story state, player actions
    - Outputs: New clues, clue connections, evidence details
+   - Implementation: Pydantic models with PydanticAI agent tools
 
 4. **BoardAgent**
    - Responsibilities:
@@ -108,6 +111,7 @@ The AI system is built on a modular agent architecture using the Archon MCP fram
      - Manage visual connections between elements
    - Inputs: Story state, discovered clues, player board actions
    - Outputs: Board state updates, visual element properties
+   - Implementation: Pydantic models with PydanticAI agent tools
 
 5. **CoordinatorAgent**
    - Responsibilities:
@@ -116,6 +120,7 @@ The AI system is built on a modular agent architecture using the Archon MCP fram
      - Resolve conflicts between agent outputs
    - Inputs: All agent states and outputs
    - Outputs: Synchronized state updates, conflict resolutions
+   - Implementation: Pydantic models with PydanticAI agent tools
 
 ### Memory System
 
@@ -190,7 +195,7 @@ Example template structure:
 - **State Management**: Pinia
 - **Styling**: Tailwind CSS
 - **Animations**: GSAP
-- **Visual Board**: 
+- **Visual Board**:
   - Vue Draggable
   - D3.js for connections
   - Custom SVG components
@@ -203,10 +208,11 @@ Example template structure:
 - **Deployment**: Render
 
 ### AI & ML
-- **Agent Framework**: Archon MCP
-- **LLM Integration**: Pydantic AI
+- **Agent Framework**: PydanticAI
+- **Data Validation**: Pydantic v2
+- **LLM Integration**: PydanticAI
 - **Memory System**: mem0
-- **Models**: 
+- **Models**:
   - Deepseek-r1/v3
   - Mistral
 - **API Providers**: Openrouter, Together.ai
