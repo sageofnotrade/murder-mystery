@@ -9,6 +9,7 @@ load_dotenv()
 
 # Import routes
 from routes.auth import auth_bp
+from routes.template_routes import template_bp
 # from routes.users import users_bp
 # from routes.mysteries import mysteries_bp
 # from routes.stories import stories_bp
@@ -31,6 +32,7 @@ app.config['REDIS_TOKEN'] = config.REDIS_TOKEN
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(template_bp, url_prefix='/api/templates')
 # app.register_blueprint(users_bp, url_prefix='/api/users')
 # app.register_blueprint(mysteries_bp, url_prefix='/api/mysteries')
 # app.register_blueprint(stories_bp, url_prefix='/api/stories')
