@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from supabase import Client
 from models.story_models import StoryState
+from backend.models.clue_models import ClueCreate, ClueDetail, ClueConnection, ClueAnalysisRequest
 
 class ClueService:
     def __init__(self, supabase: Client):
@@ -142,4 +143,170 @@ class ClueService:
 
             return result.data[0]
         except Exception as e:
-            raise ValueError(f"Error updating red herring status: {str(e)}") 
+            raise ValueError(f"Error updating red herring status: {str(e)}")
+
+    async def discover_clue(self, story_id: str, user_id: str, clue_data: ClueCreate) -> ClueDetail:
+        """Discover a new clue in the story."""
+        # Create clue record
+        clue_record = {
+            'id': str(uuid.uuid4()),
+            'story_id': story_id,
+            'template_clue_id': clue_data.id,
+            'discovered_at': datetime.now().isoformat(),
+            'discovery_method': clue_data.discovery_context,
+            'discovery_location': clue_data.location,
+            'relevance_score': 0.5,  # Initial score
+            'is_red_herring': False,
+            'notes': '',
+            'connections': []
+        }
+        
+        # Insert into database
+        result = self.supabase.table('story_clues').insert(clue_record).execute()
+        if not result.data:
+            raise Exception("Failed to create clue record")
+            
+        return ClueDetail(**result.data[0])
+        
+    async def get_story_clues(self, story_id: str, user_id: str) -> List[ClueDetail]:
+        """Get all discovered clues for a story."""
+        result = self.supabase.table('story_clues')\
+            .select('*')\
+            .eq('story_id', story_id)\
+            .execute()
+            
+        return [ClueDetail(**clue) for clue in result.data]
+        
+    async def get_clue_details(self, story_id: str, clue_id: str, user_id: str) -> ClueDetail:
+        """Get detailed information about a specific clue."""
+        result = self.supabase.table('story_clues')\
+            .select('*')\
+            .eq('story_id', story_id)\
+            .eq('id', clue_id)\
+            .execute()
+            
+        if not result.data:
+            raise Exception("Clue not found")
+            
+        return ClueDetail(**result.data[0])
+        
+    async def update_clue_notes(self, story_id: str, clue_id: str, notes: str, user_id: str) -> ClueDetail:
+        """Update the notes for a clue."""
+        result = self.supabase.table('story_clues')\
+            .update({'notes': notes})\
+            .eq('story_id', story_id)\
+            .eq('id', clue_id)\
+            .execute()
+            
+        if not result.data:
+            raise Exception("Failed to update clue notes")
+            
+        return ClueDetail(**result.data[0])
+        
+    async def add_clue_connection(self, story_id: str, connection: ClueConnection, user_id: str) -> ClueConnection:
+        """Create a connection between two clues."""
+        # Validate clues exist
+        source = await self.get_clue_details(story_id, connection.source_clue_id, user_id)
+        target = await self.get_clue_details(story_id, connection.target_clue_id, user_id)
+        
+        # Create connection record
+        connection_record = {
+            'id': str(uuid.uuid4()),
+            'story_id': story_id,
+            'source_clue_id': connection.source_clue_id,
+            'target_clue_id': connection.target_clue_id,
+            'relationship_type': connection.relationship_type,
+            'description': connection.description,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        # Insert into database
+        result = self.supabase.table('clue_connections').insert(connection_record).execute()
+        if not result.data:
+            raise Exception("Failed to create clue connection")
+            
+        # Update clue connections
+        await self._update_clue_connections(story_id, connection.source_clue_id, user_id)
+        await self._update_clue_connections(story_id, connection.target_clue_id, user_id)
+        
+        return ClueConnection(**result.data[0])
+        
+    async def get_clue_connections(self, story_id: str, clue_id: str, user_id: str) -> List[ClueConnection]:
+        """Get all connections for a clue."""
+        result = self.supabase.table('clue_connections')\
+            .select('*')\
+            .eq('story_id', story_id)\
+            .eq('source_clue_id', clue_id)\
+            .execute()
+            
+        return [ClueConnection(**conn) for conn in result.data]
+        
+    async def update_clue_relevance(self, story_id: str, clue_id: str, relevance_score: float, user_id: str) -> ClueDetail:
+        """Update the relevance score of a clue."""
+        result = self.supabase.table('story_clues')\
+            .update({'relevance_score': relevance_score})\
+            .eq('story_id', story_id)\
+            .eq('id', clue_id)\
+            .execute()
+            
+        if not result.data:
+            raise Exception("Failed to update clue relevance")
+            
+        return ClueDetail(**result.data[0])
+        
+    async def mark_clue_as_red_herring(self, story_id: str, clue_id: str, user_id: str) -> ClueDetail:
+        """Mark a clue as a red herring."""
+        result = self.supabase.table('story_clues')\
+            .update({'is_red_herring': True})\
+            .eq('story_id', story_id)\
+            .eq('id', clue_id)\
+            .execute()
+            
+        if not result.data:
+            raise Exception("Failed to mark clue as red herring")
+            
+        return ClueDetail(**result.data[0])
+        
+    async def analyze_clue(self, story_id: str, clue_id: str, analysis_request: ClueAnalysisRequest, user_id: str) -> Dict[str, Any]:
+        """Analyze a clue for deeper insights."""
+        # Get clue details
+        clue = await self.get_clue_details(story_id, clue_id, user_id)
+        
+        # Get related clues
+        connections = await self.get_clue_connections(story_id, clue_id, user_id)
+        
+        # Get related suspects
+        suspects_result = self.supabase.table('story_suspects')\
+            .select('*')\
+            .eq('story_id', story_id)\
+            .execute()
+            
+        suspects = suspects_result.data
+        
+        # Perform analysis
+        analysis = {
+            'clue_details': clue.dict(),
+            'related_clues': [conn.dict() for conn in connections],
+            'related_suspects': suspects,
+            'analysis_context': analysis_request.context,
+            'focus_areas': analysis_request.focus_areas,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        return analysis
+        
+    async def _update_clue_connections(self, story_id: str, clue_id: str, user_id: str) -> None:
+        """Update the connections list for a clue."""
+        # Get all connections
+        result = self.supabase.table('clue_connections')\
+            .select('*')\
+            .eq('story_id', story_id)\
+            .eq('source_clue_id', clue_id)\
+            .execute()
+            
+        # Update clue record
+        self.supabase.table('story_clues')\
+            .update({'connections': [conn['id'] for conn in result.data]})\
+            .eq('story_id', story_id)\
+            .eq('id', clue_id)\
+            .execute() 

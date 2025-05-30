@@ -2,6 +2,10 @@ import pytest
 import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+from flask import Flask
+from backend import create_app
+from backend.tests.mocks.supabase_mock import MockSupabaseClient
+from backend.tests.mocks.redis_mock import MockRedisClient
 
 # Configure pytest-asyncio
 pytest_plugins = ('pytest_asyncio',)
@@ -11,6 +15,10 @@ def pytest_configure(config):
     patch('supabase._sync.client.create_client', return_value=MagicMock()).start()
     # Patch Redis client at the module level
     patch('redis.Redis', return_value=MagicMock()).start()
+    config.addinivalue_line(
+        "asyncio_mode",
+        "auto"
+    )
 
 # Set test environment variables
 @pytest.fixture(autouse=True)
@@ -35,3 +43,44 @@ def setup_test_env():
 def patch_supabase_create_client():
     with patch('supabase._sync.client.create_client', return_value=MagicMock()):
         yield 
+
+@pytest.fixture
+def app():
+    """Create and configure a Flask app for testing."""
+    app = create_app({
+        'TESTING': True,
+        'SUPABASE_URL': 'mock://supabase',
+        'SUPABASE_KEY': 'mock-key',
+        'REDIS_URL': 'mock://redis',
+    })
+    
+    # Set up app context
+    with app.app_context():
+        yield app
+
+@pytest.fixture
+def client(app):
+    """A test client for the app."""
+    return app.test_client()
+
+@pytest.fixture
+def runner(app):
+    """A test CLI runner for the app."""
+    return app.test_cli_runner()
+
+@pytest.fixture
+def mock_supabase():
+    """Create a mock Supabase client."""
+    return MockSupabaseClient()
+
+@pytest.fixture
+def mock_redis():
+    """Create a mock Redis client."""
+    return MockRedisClient()
+
+@pytest.fixture
+def auth_headers():
+    """Generate auth headers for testing protected endpoints."""
+    return {
+        'Authorization': 'Bearer mock-jwt-token'
+    } 

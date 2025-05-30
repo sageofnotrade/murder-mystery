@@ -1,82 +1,91 @@
 from flask import Blueprint, request, jsonify
-from uuid import UUID
-from services.story_service import StoryService
-from models.story_models import PlayerAction, StoryResponse
-from supabase import create_client, Client
-import os
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from backend.services.story_service import StoryService
+from backend.services.supabase_service import get_supabase_client
 
-story_bp = Blueprint('story', __name__)
+story_bp = Blueprint('story_routes', __name__)
 
-# Initialize Supabase client
-supabase: Client = create_client(
-    os.getenv('SUPABASE_URL'),
-    os.getenv('SUPABASE_KEY')
-)
+def get_story_service():
+    """Get a StoryService instance with the current Supabase client."""
+    return StoryService(get_supabase_client())
 
-# Initialize story service
-story_service = StoryService(supabase)
+@story_bp.route('/api/stories', methods=['GET'])
+@jwt_required()
+async def get_stories():
+    """Get all stories for the current user."""
+    user_id = get_jwt_identity()
+    story_service = get_story_service()
+    
+    try:
+        stories = await story_service.get_user_stories(user_id)
+        return jsonify(stories)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-@story_bp.route('/stories', methods=['POST'])
+@story_bp.route('/api/stories/<story_id>', methods=['GET'])
+@jwt_required()
+async def get_story(story_id):
+    """Get a specific story."""
+    user_id = get_jwt_identity()
+    story_service = get_story_service()
+    
+    try:
+        story = await story_service.get_story(story_id, user_id)
+        return jsonify(story)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@story_bp.route('/api/stories', methods=['POST'])
+@jwt_required()
 async def create_story():
-    """Create a new story instance."""
+    """Create a new story."""
+    user_id = get_jwt_identity()
+    story_service = get_story_service()
+    
     try:
         data = request.get_json()
-        mystery_id = UUID(data['mystery_id'])
-        
-        story = await story_service.create_story(mystery_id)
-        return jsonify({
-            'message': 'Story created successfully',
-            'story_id': str(story.id)
-        }), 201
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 404
+        story = await story_service.create_story(user_id, data)
+        return jsonify(story), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@story_bp.route('/stories/<story_id>', methods=['GET'])
-async def get_story(story_id: str):
-    """Get the current state of a story."""
+@story_bp.route('/api/stories/<story_id>/progress', methods=['GET'])
+@jwt_required()
+async def get_story_progress(story_id):
+    """Get the progress of a story."""
+    user_id = get_jwt_identity()
+    story_service = get_story_service()
+    
     try:
-        story = await story_service.get_story(UUID(story_id))
-        return jsonify(story.dict()), 200
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 404
+        progress = await story_service.get_story_progress(story_id, user_id)
+        return jsonify(progress)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@story_bp.route('/stories/<story_id>/actions', methods=['POST'])
-async def process_action(story_id: str):
-    """Process a player action and update the story state."""
+@story_bp.route('/api/stories/<story_id>/actions', methods=['POST'])
+@jwt_required()
+async def perform_action(story_id):
+    """Perform an action in the story."""
+    user_id = get_jwt_identity()
+    story_service = get_story_service()
+    
     try:
         data = request.get_json()
-        action = PlayerAction(**data)
-        
-        response = await story_service.process_action(UUID(story_id), action)
-        return jsonify(response.dict()), 200
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 404
+        result = await story_service.perform_action(story_id, user_id, data)
+        return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@story_bp.route('/stories/<story_id>/choices', methods=['GET'])
-async def get_choices(story_id: str):
-    """Get available choices for the current story state."""
+@story_bp.route('/api/stories/<story_id>/choices', methods=['POST'])
+@jwt_required()
+async def make_choice(story_id):
+    """Make a choice in the story."""
+    user_id = get_jwt_identity()
+    story_service = get_story_service()
+    
     try:
-        choices = await story_service.get_available_choices(UUID(story_id))
-        return jsonify([choice.dict() for choice in choices]), 200
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@story_bp.route('/stories/<story_id>/save', methods=['POST'])
-async def save_story(story_id: str):
-    """Save the current state of a story."""
-    try:
-        story = await story_service.get_story(UUID(story_id))
-        await story_service.save_story_state(story)
-        return jsonify({'message': 'Story state saved successfully'}), 200
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 404
+        data = request.get_json()
+        result = await story_service.make_choice(story_id, user_id, data)
+        return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500 

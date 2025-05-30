@@ -10,6 +10,7 @@ from routes.story_routes import story_bp, get_supabase_client, get_story_service
 from models.story_models import StoryState, PlayerAction, StoryChoice, StoryResponse
 import json
 from app import app
+from datetime import datetime
 
 # Mock Supabase client at module level
 mock_supabase = MagicMock()
@@ -51,20 +52,33 @@ def auth_headers():
     return {'Authorization': 'Bearer test-token'}
 
 @pytest.fixture
-def sample_story():
+def sample_story_data():
     return {
-        "id": "123e4567-e89b-12d3-a456-426614174000",
-        "mystery_id": "123e4567-e89b-12d3-a456-426614174001",
-        "state": "active",
-        "current_scene": "intro",
-        "choices": ["choice1", "choice2"]
+        'id': '123e4567-e89b-12d3-a456-426614174000',
+        'user_id': 'user123',
+        'mystery_id': 'mystery123',
+        'title': 'Test Story',
+        'current_scene': 'introduction',
+        'created_at': datetime.now().isoformat(),
+        'updated_at': datetime.now().isoformat(),
+        'narrative_history': [],
+        'discovered_clues': [],
+        'suspect_states': {}
     }
 
 @pytest.fixture
-def sample_action():
+def sample_action_data():
     return {
-        "action_type": "investigate",
-        "target": "clue1"
+        'action_type': 'examine',
+        'content': 'Look at the desk',
+        'target_id': 'desk1'
+    }
+
+@pytest.fixture
+def sample_choice_data():
+    return {
+        'choice_text': 'Open the drawer',
+        'consequences': {'reveals_clue': 'clue1'}
     }
 
 @pytest.mark.asyncio
@@ -239,4 +253,121 @@ async def test_invalid_story_id(client, mock_story_service, auth_headers):
         # Assert response
         assert response.status_code == 404
         data = json.loads(response.data)
-        assert 'error' in data 
+        assert 'error' in data
+
+async def test_get_stories(client, auth_headers, mock_supabase, sample_story_data):
+    """Test getting all stories for a user."""
+    # Set up mock data
+    mock_supabase.table.return_value.select.return_value.execute.return_value = {
+        'data': [sample_story_data]
+    }
+    
+    # Make request
+    response = await client.get('/api/stories', headers=auth_headers)
+    
+    # Check response
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert len(data) == 1
+    assert data[0]['title'] == 'Test Story'
+
+async def test_get_story(client, auth_headers, mock_supabase, sample_story_data):
+    """Test getting a specific story."""
+    # Set up mock data
+    mock_supabase.table.return_value.select.return_value.execute.return_value = {
+        'data': [sample_story_data]
+    }
+    
+    # Make request
+    response = await client.get(
+        f'/api/stories/{sample_story_data["id"]}',
+        headers=auth_headers
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['title'] == 'Test Story'
+
+async def test_create_story(client, auth_headers, mock_supabase, sample_story_data):
+    """Test creating a new story."""
+    # Set up mock data
+    mock_supabase.table.return_value.insert.return_value.execute.return_value = {
+        'data': [sample_story_data]
+    }
+    
+    # Make request
+    response = await client.post(
+        '/api/stories',
+        headers=auth_headers,
+        json={'mystery_id': 'mystery123'}
+    )
+    
+    # Check response
+    assert response.status_code == 201
+    data = json.loads(response.data)
+    assert data['title'] == 'Test Story'
+
+async def test_get_story_progress(client, auth_headers, mock_supabase):
+    """Test getting story progress."""
+    # Set up mock data
+    mock_supabase.table.return_value.select.return_value.execute.return_value = {
+        'data': [{'game_progress': 0.5}]
+    }
+    
+    # Make request
+    response = await client.get(
+        '/api/stories/123e4567-e89b-12d3-a456-426614174000/progress',
+        headers=auth_headers
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['game_progress'] == 0.5
+
+async def test_perform_action(client, auth_headers, mock_supabase, sample_action_data):
+    """Test performing an action in the story."""
+    # Set up mock data
+    mock_supabase.table.return_value.insert.return_value.execute.return_value = {
+        'data': [{
+            'id': 'action1',
+            'story_id': '123e4567-e89b-12d3-a456-426614174000',
+            **sample_action_data
+        }]
+    }
+    
+    # Make request
+    response = await client.post(
+        '/api/stories/123e4567-e89b-12d3-a456-426614174000/actions',
+        headers=auth_headers,
+        json=sample_action_data
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['action_type'] == 'examine'
+
+async def test_make_choice(client, auth_headers, mock_supabase, sample_choice_data):
+    """Test making a choice in the story."""
+    # Set up mock data
+    mock_supabase.table.return_value.insert.return_value.execute.return_value = {
+        'data': [{
+            'id': 'choice1',
+            'story_id': '123e4567-e89b-12d3-a456-426614174000',
+            **sample_choice_data
+        }]
+    }
+    
+    # Make request
+    response = await client.post(
+        '/api/stories/123e4567-e89b-12d3-a456-426614174000/choices',
+        headers=auth_headers,
+        json=sample_choice_data
+    )
+    
+    # Check response
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['choice_text'] == 'Open the drawer' 
