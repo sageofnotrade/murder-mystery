@@ -8,8 +8,16 @@ from models.template_models import MysteryTemplate, Suspect, Clue
 @pytest.fixture
 def client():
     """Create a test client."""
+    app.config['TESTING'] = True
     with app.test_client() as client:
         yield client
+
+@pytest.fixture
+def mock_supabase():
+    with patch('services.template_service.create_client') as mock_create_client:
+        mock_client = MagicMock()
+        mock_create_client.return_value = mock_client
+        yield mock_client
 
 @pytest.fixture
 def mock_template():
@@ -55,130 +63,172 @@ def mock_template():
         ]
     )
 
-@patch('services.template_service.TemplateService')
-def test_get_all_templates(mock_service, client):
-    """Test retrieving all templates."""
-    # Set up mock
-    mock_instance = mock_service.return_value
-    mock_instance.get_all_templates.return_value = [mock_template()]
-    
-    # Make request
-    response = client.get('/api/templates')
-    data = json.loads(response.data)
-    
-    # Assertions
-    assert response.status_code == 200
-    assert data['success'] is True
-    assert len(data['templates']) == 1
-    assert data['templates'][0]['title'] == "Test Mystery"
-    
-    # Verify service call
-    mock_instance.get_all_templates.assert_called_once()
-
-@patch('services.template_service.TemplateService')
-def test_get_template_by_id(mock_service, client, mock_template):
-    """Test retrieving a template by ID."""
-    # Set up mock
-    mock_instance = mock_service.return_value
-    mock_instance.get_template_by_id.return_value = mock_template
-    
-    # Make request
-    response = client.get('/api/templates/test-id-123')
-    data = json.loads(response.data)
-    
-    # Assertions
-    assert response.status_code == 200
-    assert data['success'] is True
-    assert data['template']['id'] == "test-id-123"
-    
-    # Verify service call
-    mock_instance.get_template_by_id.assert_called_once_with("test-id-123")
-
-@patch('services.template_service.TemplateService')
-def test_get_template_not_found(mock_service, client):
-    """Test retrieving a non-existent template."""
-    # Set up mock
-    mock_instance = mock_service.return_value
-    mock_instance.get_template_by_id.return_value = None
-    
-    # Make request
-    response = client.get('/api/templates/nonexistent-id')
-    data = json.loads(response.data)
-    
-    # Assertions
-    assert response.status_code == 404
-    assert data['success'] is False
-    assert "not found" in data['error']
-
-@patch('services.template_service.TemplateService')
-def test_create_template(mock_service, client, mock_template):
-    """Test creating a new template."""
-    # Set up mock
-    mock_instance = mock_service.return_value
-    mock_instance.create_template.return_value = mock_template
-    
-    # Prepare test data
-    template_data = mock_template.model_dump()
-    
-    # Make request
-    response = client.post('/api/templates', 
-                          json=template_data,
-                          content_type='application/json')
-    data = json.loads(response.data)
-    
-    # Assertions
-    assert response.status_code == 201
-    assert data['success'] is True
-    assert data['template']['title'] == "Test Mystery"
-    
-    # Verify service call (simplified check)
-    assert mock_instance.create_template.called
-
-@patch('services.template_service.TemplateService')
-def test_update_template(mock_service, client, mock_template):
-    """Test updating a template."""
-    # Set up mock
-    mock_instance = mock_service.return_value
-    mock_instance.get_template_by_id.return_value = mock_template
-    mock_instance.update_template.return_value = mock_template
-    
-    # Prepare update data
-    update_data = {
-        "title": "Updated Mystery Title",
-        "description": "Updated description"
+@pytest.fixture
+def sample_template():
+    return {
+        "id": "test-id-123",
+        "title": "The Mansion Murder",
+        "description": "A wealthy businessman is found dead in his mansion",
+        "setting": "Victorian mansion",
+        "time_period": "1920s",
+        "victim": {
+            "name": "John Smith",
+            "occupation": "Businessman",
+            "cause_of_death": "Poisoning"
+        },
+        "suspects": [
+            {
+                "name": "Mary Johnson",
+                "description": "The victim's wife",
+                "motive": "Inheritance",
+                "alibi": "Was at a party",
+                "guilty": False,
+                "personality_traits": {
+                    "ambitious": 0.8,
+                    "deceptive": 0.6
+                }
+            }
+        ],
+        "clues": [
+            {
+                "id": "clue1",
+                "description": "A half-empty wine glass",
+                "location": "Victim's study",
+                "related_suspects": ["Mary Johnson"],
+                "discovery_difficulty": 0.5,
+                "type": "physical"
+            }
+        ],
+        "red_herrings": [
+            {
+                "description": "A broken window",
+                "explanation": "Was broken during a storm"
+            }
+        ],
+        "difficulty": 0.7,
+        "estimated_duration": "2 hours"
     }
-    
-    # Make request
-    response = client.put('/api/templates/test-id-123', 
-                         json=update_data,
-                         content_type='application/json')
-    data = json.loads(response.data)
-    
-    # Assertions
-    assert response.status_code == 200
-    assert data['success'] is True
-    
-    # Verify service calls
-    mock_instance.get_template_by_id.assert_called_once_with("test-id-123")
-    mock_instance.update_template.assert_called_once_with("test-id-123", update_data)
 
-@patch('services.template_service.TemplateService')
-def test_delete_template(mock_service, client, mock_template):
-    """Test deleting a template."""
-    # Set up mock
-    mock_instance = mock_service.return_value
-    mock_instance.get_template_by_id.return_value = mock_template
-    mock_instance.delete_template.return_value = True
-    
-    # Make request
-    response = client.delete('/api/templates/test-id-123')
-    data = json.loads(response.data)
-    
-    # Assertions
+@patch('routes.template_routes.template_service')
+def test_get_all_templates(mock_service, client, sample_template):
+    mock_service.get_all_templates.return_value = [MysteryTemplate(**sample_template)]
+    response = client.get('/api/templates')
     assert response.status_code == 200
-    assert data['success'] is True
-    assert "deleted successfully" in data['message']
-    
-    # Verify service calls
-    mock_instance.get_template_by_id.assert_called_once_with("test-id-123")
-    mock_instance.delete_template.assert_called_once_with("test-id-123") 
+    data = json.loads(response.data)
+    assert 'success' in data
+    assert 'templates' in data
+    assert 'count' in data
+    assert isinstance(data['templates'], list)
+    assert data['templates'][0]['title'] == sample_template['title']
+
+@patch('routes.template_routes.template_service')
+def test_get_template_by_id(mock_service, client, sample_template):
+    mock_service.get_template_by_id.return_value = MysteryTemplate(**sample_template)
+    response = client.get(f"/api/templates/{sample_template['id']}")
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['success']
+    assert data['template']['id'] == sample_template['id']
+
+@patch('routes.template_routes.template_service')
+def test_get_template_not_found(mock_service, client):
+    mock_service.get_template_by_id.return_value = None
+    response = client.get('/api/templates/nonexistent')
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert not data['success']
+    assert data['error'] == 'Template not found'
+
+@patch('routes.template_routes.template_service')
+def test_create_template_success(mock_service, client, sample_template):
+    mock_service.create_template.return_value = MysteryTemplate(**sample_template)
+    response = client.post(
+        '/api/templates',
+        json=sample_template,
+        headers={'Content-Type': 'application/json'}
+    )
+    assert response.status_code == 201
+    data = json.loads(response.data)
+    assert data['success']
+    assert data['template']['title'] == sample_template['title']
+
+@patch('routes.template_routes.template_service')
+def test_create_template_invalid_data(mock_service, client):
+    invalid_template = {
+        "title": "Invalid Template"
+        # Missing required fields
+    }
+    response = client.post(
+        '/api/templates',
+        json=invalid_template,
+        headers={'Content-Type': 'application/json'}
+    )
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert not data['success']
+    assert data['error'] == 'Validation error'
+
+@patch('routes.template_routes.template_service')
+def test_update_template_success(mock_service, client, sample_template):
+    mock_service.get_template_by_id.return_value = MysteryTemplate(**sample_template)
+    mock_service.update_template.return_value = MysteryTemplate(**sample_template)
+    update_data = {"title": "Updated Title", "description": "Updated desc"}
+    response = client.put(
+        f"/api/templates/{sample_template['id']}",
+        json=update_data,
+        headers={'Content-Type': 'application/json'}
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['success']
+    assert data['template']['title'] == sample_template['title']
+
+@patch('routes.template_routes.template_service')
+def test_update_template_not_found(mock_service, client, sample_template):
+    mock_service.get_template_by_id.return_value = None
+    response = client.put(
+        '/api/templates/nonexistent',
+        json=sample_template,
+        headers={'Content-Type': 'application/json'}
+    )
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert not data['success']
+    assert data['error'] == 'Template not found'
+
+@patch('routes.template_routes.template_service')
+def test_delete_template_success(mock_service, client, sample_template):
+    mock_service.get_template_by_id.return_value = MysteryTemplate(**sample_template)
+    mock_service.delete_template.return_value = True
+    response = client.delete(f"/api/templates/{sample_template['id']}")
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['success']
+    assert 'deleted successfully' in data['message']
+
+@patch('routes.template_routes.template_service')
+def test_delete_template_not_found(mock_service, client):
+    mock_service.get_template_by_id.return_value = None
+    response = client.delete('/api/templates/nonexistent')
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert not data['success']
+    assert data['error'] == 'Template not found'
+
+@patch('routes.template_routes.template_service')
+def test_search_templates_no_query(mock_service, client):
+    response = client.get('/api/templates/search')
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert not data['success']
+    assert data['error'] == 'Search query is required'
+
+@patch('routes.template_routes.template_service')
+def test_search_templates_with_query(mock_service, client, sample_template):
+    mock_service.search_templates.return_value = [MysteryTemplate(**sample_template)]
+    response = client.get('/api/templates/search?q=mansion')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['success']
+    assert isinstance(data['templates'], list)
+    assert data['templates'][0]['title'] == sample_template['title'] 

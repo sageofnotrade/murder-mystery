@@ -11,9 +11,9 @@ load_dotenv()
 from routes.auth import auth_bp
 from routes.template_routes import template_bp
 from routes.story_routes import story_bp
+from routes.clue_routes import clue_bp
 # from routes.users import users_bp
 # from routes.mysteries import mysteries_bp
-# from routes.clues import clues_bp
 # from routes.board import board_bp
 
 # Create Flask app
@@ -34,9 +34,9 @@ app.config['REDIS_TOKEN'] = config.REDIS_TOKEN
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(template_bp, url_prefix='/api/templates')
 app.register_blueprint(story_bp, url_prefix='/api')
+app.register_blueprint(clue_bp, url_prefix='/api')
 # app.register_blueprint(users_bp, url_prefix='/api/users')
 # app.register_blueprint(mysteries_bp, url_prefix='/api/mysteries')
-# app.register_blueprint(clues_bp, url_prefix='/api/clues')
 # app.register_blueprint(board_bp, url_prefix='/api/board')
 
 @app.route('/')
