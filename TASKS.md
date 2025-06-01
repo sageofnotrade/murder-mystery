@@ -68,7 +68,7 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 | AI-007 | Integrate mem0 for persistent memory | Completed | Medium | 6h | - | AI-001 |
 | AI-008 | Set up LLM API integration (Openrouter/Together.ai) | Completed | High | 4h | - | AI-001 |
 | AI-009 | Implement psychological profiling logic | Not Started | Medium | 8h | - | AI-002 |
-| AI-010 | Create mystery template parser and populator | Not Started | High | 6h | - | AI-001 |
+| AI-010 | Create mystery template parser and populator | Completed | High | 6h | Team Member 4 | AI-001 |
 | AI-011 | Integrate Brave Search and LLMs into StoryAgent | Completed | High | 10h | - | AI-002 |
 
 ### Database Tasks
@@ -201,6 +201,12 @@ This document tracks all current tasks, backlog items, and sub-tasks for the Mur
 - **2023-11-20**: Decided to use PydanticAI and Pydantic v2 instead of Archon MCP for better type safety and integration with existing code
 
 ## 🔄 Task Updates
+
+- **2024-06-08**: Completed AI-010 - Created mystery template parser and populator
+  - Implemented Pydantic models for templates and player profiles
+  - Developed TemplateParser and TemplatePopulator classes
+  - Added variable extraction, validation, and population logic
+  - Wrote unit and script tests for parser and populator
 
 This section will be updated as tasks are completed or modified:
 
