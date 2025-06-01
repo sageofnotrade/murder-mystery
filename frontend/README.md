@@ -48,3 +48,16 @@ This directory contains the Vue.js/Nuxt.js frontend for the Murþrą murder myst
 - Psychological profiling questionnaire
 - Interactive detective board with draggable elements
 - Suspect profiles and clue management
+
+## Detective Board UI
+
+A new visual detective board interface is being implemented at `pages/mystery/board.vue` using modular components in `components/board/`. This board allows users to organize clues, suspects, and evidence visually.
+
+### Dependencies
+- [vuedraggable](https://github.com/SortableJS/vue.draggable.next): For drag-and-drop board elements
+- [d3](https://d3js.org/): For visualizing connections between elements
+
+To install dependencies:
+```bash
+npm install vuedraggable d3
+```
