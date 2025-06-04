@@ -11,6 +11,13 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
     typeCheck: true,
+    tsConfig: {
+      compilerOptions: {
+        module: 'ESNext',
+        moduleResolution: 'Bundler',
+        target: 'ESNext'
+      }
+    }
   },
   alias: {
     '@': '/<rootDir>',

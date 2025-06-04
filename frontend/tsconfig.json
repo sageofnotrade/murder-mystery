@@ -1,12 +1,52 @@
 {
-  "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    "strict": true,
-    "skipLibCheck": true,
-    "types": ["node"],
+    "target": "ESNext",
     "module": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUncheckedIndexedAccess": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "types": ["node"],
     "paths": {
-      "@/*": ["./*"]
+      "~": ["./"],
+      "~/*": ["./*"],
+      "@": ["./"],
+      "@/*": ["./*"],
+      "#app": ["./node_modules/nuxt/dist/app"],
+      "#app/*": ["./node_modules/nuxt/dist/app/*"],
+      "#imports": ["./.nuxt/imports"],
+      "#components": ["./.nuxt/components"]
     }
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.vue",
+    ".nuxt/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    ".nuxt/dist",
+    ".output",
+    "dist"
+  ]
 } 
