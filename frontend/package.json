@@ -12,6 +12,7 @@
   "dependencies": {
     "@nuxtjs/supabase": "^1.1.4",
     "@pinia/nuxt": "^0.5.1",
+    "axios": "^1.9.0",
     "d3": "^7.8.5",
     "gsap": "^3.12.4",
     "pinia": "^2.1.7",
@@ -22,12 +23,19 @@
     "@nuxt/devtools": "latest",
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
     "@nuxtjs/tailwindcss": "^6.10.3",
-    "@types/node": "^22.15.17",
+    "@pinia/testing": "^1.0.2",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@types/node": "^22.15.29",
+    "@types/testing-library__jest-dom": "^6.0.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.56.0",
+    "jsdom": "^26.1.0",
     "nuxt": "^3.9.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^3.2.1"
   }
 }
