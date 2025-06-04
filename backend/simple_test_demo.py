@@ -151,23 +151,39 @@ def demo_error_handling_patterns():
     print("🔍 Testing Error Handling Patterns...")
     
     # Test API failure simulation
-    def resilient_api_wrapper():
+    def resilient_api_wrapper(api_func):
         """Wrapper that handles API failures gracefully."""
         try:
-            return simulate_api_call()
+            return api_func()
         except Exception:
             return {"error": "API unavailable", "fallback": True}
     
-    # Test the resilient wrapper
-    result = resilient_api_wrapper()
+    # Test the resilient wrapper with failing function
+    result = resilient_api_wrapper(simulate_api_call)
     assert result["error"] == "API unavailable"
     assert result["fallback"] is True
     
-    # Test with mocked successful response using the global function
-    import simple_test_demo
-    with patch.object(simple_test_demo, 'simulate_api_call', return_value={"data": "success"}):
-        result = resilient_api_wrapper()
-        assert result["data"] == "success"
+    # Test with successful mock function
+    def mock_successful_api():
+        return {"data": "success"}
+    
+    result = resilient_api_wrapper(mock_successful_api)
+    assert result["data"] == "success"
+    
+    # Demonstrate error handling with different error types
+    def api_with_timeout():
+        raise TimeoutError("Request timed out")
+    
+    def api_with_connection_error():
+        raise ConnectionError("Connection failed")
+    
+    timeout_result = resilient_api_wrapper(api_with_timeout)
+    connection_result = resilient_api_wrapper(api_with_connection_error)
+    
+    assert timeout_result["error"] == "API unavailable"
+    assert connection_result["error"] == "API unavailable"
+    assert timeout_result["fallback"] is True
+    assert connection_result["fallback"] is True
     
     print("✅ Error Handling Patterns test passed")
 
