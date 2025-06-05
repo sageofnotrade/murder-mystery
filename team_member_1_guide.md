@@ -1,172 +1,106 @@
-# Team Member 1 - Milestone 3 Task Guide
+# Team Member 1 - Milestone 4 Task Guide
 
 ## Your Tasks Overview
 
 | Task ID | Title | Estimate | Dependencies |
 |---------|-------|----------|-------------|
-| FE-007 | Create draggable elements for detective board | 6h | FE-006 |
-| FE-009 | Develop UI for suspect profiles | 4h | FE-003 |
-| BE-007 | Create suspect interaction endpoints | 6h | BE-005 |
+| FE-011 | UI/UX polish for detective board and narrative mode | 6h | FE-007, FE-008 |
+| FE-012 | Accessibility improvements (a11y audit & fixes) | 4h | FE-009, FE-010 |
+| DEP-001 | Frontend deployment pipeline setup (CI/CD) | 6h | FE-011 |
 | **Total** | | **16h** | |
 
 ## Task Details and Implementation Guide
 
-### FE-007: Create draggable elements for detective board
+### FE-011: UI/UX polish for detective board and narrative mode
 
 #### Description
-Implement draggable Vue components for suspects, clues, locations, and notes on the detective board. This will allow users to visually organize and connect elements as part of their investigation.
+Refine the visual and interactive experience for both the detective board and narrative mode. Address usability issues, visual consistency, and micro-interactions to ensure a polished, engaging user experience.
 
 #### Implementation Steps
-
-1. **Review existing detective board UI (FE-006)**
-   - Examine the current board structure and element rendering.
-   - Note the use of libraries (e.g., Vue Draggable, D3.js).
-
-2. **Design draggable element components**
-   - Plan for separate components for suspects, clues, locations, and notes.
-   - Ensure each component supports drag-and-drop and displays relevant data.
-
-3. **Implement Vue components**
-   ```bash
-   # Create draggable element components
-   touch frontend/components/board/SuspectElement.vue
-   touch frontend/components/board/ClueElement.vue
-   touch frontend/components/board/LocationElement.vue
-   touch frontend/components/board/NoteElement.vue
-   ```
-
-4. **Integrate with board state**
-   - Use Pinia store for managing element positions and state.
-   - Ensure state persistence on drag events.
-
-5. **Add drag-and-drop functionality**
-   - Use `vuedraggable` for drag-and-drop.
-   - Implement event handlers for drag start, drag end, and drop.
-
-6. **Ensure responsive design**
-   - Test drag-and-drop on desktop, tablet, and mobile.
-   - Adjust hitboxes and touch support as needed.
-
-7. **Write unit/component tests**
-   ```bash
-   # Create test files
-   touch frontend/tests/components/SuspectElement.spec.js
-   touch frontend/tests/components/ClueElement.spec.js
-   # ...etc.
-   ```
+1. **Conduct a UI/UX audit**
+   - Review detective board and narrative mode for inconsistencies, awkward flows, and visual bugs.
+   - Collect feedback from team and testers.
+2. **Design improvements**
+   - Propose and document UI/UX enhancements (spacing, color, typography, transitions, etc).
+   - Create Figma mockups or sketches if needed.
+3. **Implement polish changes**
+   - Update Vue components and Tailwind classes for improved look and feel.
+   - Add/adjust micro-interactions (hover, drag, drop, modal transitions).
+4. **Test across devices**
+   - Verify improvements on desktop, tablet, and mobile.
+   - Fix any new issues found.
+5. **Document changes**
+   - Summarize improvements in PRs and update relevant documentation.
 
 #### Resources
-- [Vue Draggable](https://github.com/SortableJS/vue.draggable.next)
-- [Pinia State Management](https://pinia.vuejs.org/core-concepts/)
-- [Vue.js Composition API](https://vuejs.org/guide/introduction.html)
-- [Testing Vue Components](https://test-utils.vuejs.org/)
+- [UI Polish Checklist](https://uxdesign.cc/the-ultimate-ui-polish-checklist-8e5b7c1e2f8)
+- [Tailwind CSS Transitions](https://tailwindcss.com/docs/transition-property)
+- [Figma for Prototyping](https://www.figma.com/prototyping/)
 
 ---
 
-### FE-009: Develop UI for suspect profiles
+### FE-012: Accessibility improvements (a11y audit & fixes)
 
 #### Description
-Design and implement Vue components for displaying and editing suspect profiles, including their details, alibis, motives, and psychological traits.
+Perform a full accessibility audit of the frontend, then implement fixes to ensure compliance with WCAG 2.1 AA standards. Focus on keyboard navigation, ARIA labels, color contrast, and screen reader support.
 
 #### Implementation Steps
-
-1. **Review suspect data structure**
-   - Check backend API and data models for suspect information.
-   - Identify required fields for display and editing.
-
-2. **Design suspect profile components**
-   - Plan for a main profile view and editable fields.
-   - Include sections for alibi, motive, and psychological traits.
-
-3. **Implement Vue components**
-   ```bash
-   # Create suspect profile components
-   touch frontend/components/board/SuspectProfile.vue
-   touch frontend/components/board/SuspectTraitList.vue
-   ```
-
-4. **Integrate with backend endpoints**
-   - Use API service to fetch and update suspect data.
-   - Handle loading, error, and success states.
-
-5. **Ensure accessibility and responsive layout**
-   - Use semantic HTML and ARIA attributes.
-   - Test on various screen sizes.
-
-6. **Write unit/component tests**
-   ```bash
-   # Create test files
-   touch frontend/tests/components/SuspectProfile.spec.js
-   ```
+1. **Run accessibility audit tools**
+   - Use Lighthouse, axe, or similar tools to identify issues.
+   - Manually test keyboard navigation and screen reader flows.
+2. **Prioritize and document issues**
+   - List all a11y issues and prioritize by severity and user impact.
+3. **Implement fixes**
+   - Add/adjust ARIA attributes, improve color contrast, ensure all interactive elements are keyboard accessible.
+   - Update forms, modals, and dynamic content for screen reader compatibility.
+4. **Re-test and validate**
+   - Re-run audits and manual tests to confirm fixes.
+5. **Document accessibility status**
+   - Update documentation with a11y improvements and known limitations.
 
 #### Resources
-- [Vue.js Forms Guide](https://vuejs.org/guide/essentials/forms.html)
-- [Tailwind CSS](https://tailwindcss.com/docs/)
-- [Accessibility in Vue](https://vuejs.org/guide/best-practices/accessibility.html)
+- [WebAIM WCAG Checklist](https://webaim.org/standards/wcag/checklist)
+- [axe DevTools](https://www.deque.com/axe/devtools/)
+- [Lighthouse Accessibility](https://web.dev/accessibility/)
 
 ---
 
-### BE-007: Create suspect interaction endpoints
+### DEP-001: Frontend deployment pipeline setup (CI/CD)
 
 #### Description
-Implement Flask API endpoints for suspect interactions, such as dialogue, alibi verification, and motive exploration. Integrate with the SuspectAgent for dynamic responses.
+Set up a robust CI/CD pipeline for the frontend using GitHub Actions or a similar tool. Automate linting, testing, build, and deployment to staging/production environments.
 
 #### Implementation Steps
-
-1. **Review SuspectAgent and story progression endpoints**
-   - Understand how suspect data is managed and updated.
-   - Review existing agent logic for dialogue and state.
-
-2. **Design API endpoints**
-   - Plan endpoints for getting/setting suspect data, posting dialogue, and verifying alibis.
-   - Define request/response formats.
-
-3. **Implement Flask routes**
-   ```bash
-   # Create suspect routes file
-   touch backend/routes/suspect_routes.py
-   ```
-
-4. **Integrate with SuspectAgent**
-   - Connect endpoints to SuspectAgent logic for dynamic responses.
-   - Handle error and edge cases.
-
-5. **Add authentication and authorization**
-   - Use JWT or session-based auth for protected endpoints.
-
-6. **Write unit tests**
-   ```bash
-   # Create test file
-   touch backend/tests/test_suspect_routes.py
-   ```
-
-#### Example API Endpoints
-
-```
-GET /api/suspects/{id} - Get suspect profile
-POST /api/suspects/{id}/dialogue - Post dialogue and get response
-POST /api/suspects/{id}/verify-alibi - Verify suspect alibi
-```
+1. **Review deployment requirements**
+   - Confirm target environments (staging, production) and deployment platform (e.g., Render, Vercel).
+2. **Design CI/CD workflow**
+   - Plan steps: install, lint, test, build, deploy.
+   - Define environment variables and secrets management.
+3. **Implement GitHub Actions workflow**
+   - Create or update `.github/workflows/frontend.yml` for automated pipeline.
+   - Add steps for linting, testing, building, and deploying.
+4. **Test pipeline**
+   - Trigger builds on PRs and main branch merges.
+   - Fix any issues and ensure reliable deployments.
+5. **Document deployment process**
+   - Update README and internal docs with deployment instructions and troubleshooting tips.
 
 #### Resources
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [Pydantic Documentation](https://docs.pydantic.dev/latest/)
-- [RESTful API Design](https://restfulapi.net/)
-- [Testing Flask Apps](https://flask.palletsprojects.com/en/2.0.x/testing/)
+- [GitHub Actions Docs](https://docs.github.com/en/actions)
+- [Vercel Deployment Guide](https://vercel.com/docs/deployments)
+- [Render Deployment Guide](https://render.com/docs/deploy)
 
 ---
 
 ## Testing Your Work
-
 - Run the frontend and backend development servers.
-- Test all drag-and-drop, suspect profile, and interaction features.
-- Write and run unit/component/API tests for all new code.
-- Verify mobile responsiveness and accessibility.
+- Test all UI/UX, accessibility, and deployment features.
+- Write and run unit/component/E2E tests for all new code.
+- Verify accessibility and deployment reliability.
 
 ## Communication
-
 If you encounter any blockers or have questions:
-- Post in the #milestone-3 Slack channel
+- Post in the #milestone-4 Slack channel
 - Tag the project lead for urgent issues
 - Document any design decisions or assumptions in your PR description
 
@@ -174,4 +108,4 @@ Good luck with your tasks! Remember to commit your work regularly and create pul
 
 ---
 
-*This guide will be updated as Milestone 3 progresses. Good luck!*
+*This guide will be updated as Milestone 4 progresses. Good luck!*

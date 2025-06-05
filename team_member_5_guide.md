@@ -1,141 +1,97 @@
-# Team Member 5 - Milestone 3 Task Guide
+# Team Member 5 - Milestone 4 Task Guide
 
 ## Your Tasks Overview
 
 | Task ID | Title | Estimate | Dependencies |
 |---------|-------|----------|-------------|
-| BE-010 | Create user progress saving/loading endpoints | 4h | BE-005 |
-| DB-005 | Set up Redis schema for caching | 3h | SETUP-004 |
-| FE-B002 | Create mobile-responsive design | 16h | FE-005, FE-006 |
+| FE-B003 | Final mobile polish & cross-browser QA | 8h | FE-B002 |
+| DEP-003 | Production deployment & monitoring setup | 7h | DEP-001, DEP-002 |
+| DOC-001 | Update documentation for release | 8h | All |
 | **Total** | | **23h** | |
 
 ## Task Details and Implementation Guide
 
-### BE-010: Create user progress saving/loading endpoints
+### FE-B003: Final mobile polish & cross-browser QA
 
 #### Description
-Implement Flask API endpoints for saving and loading user progress in the mystery. Integrate with Supabase and the frontend to ensure seamless experience and data persistence.
+Perform a final round of mobile UI/UX polish and cross-browser quality assurance. Address any remaining mobile/responsive issues and ensure consistent experience across all major browsers.
 
 #### Implementation Steps
-
-1. **Review user progress data model and requirements**
-   - Examine how progress is tracked in the frontend and backend.
-   - Identify required fields and relationships.
-
-2. **Design API endpoints**
-   - Plan endpoints for saving and loading progress.
-   - Define request/response formats and error handling.
-
-3. **Implement Flask routes**
-   ```bash
-   # Create user progress routes file
-   touch backend/routes/user_progress_routes.py
-   ```
-
-4. **Integrate with Supabase and frontend**
-   - Use Supabase for persistent storage.
-   - Ensure endpoints are called from the frontend at appropriate times.
-
-5. **Add authentication and authorization**
-   - Use JWT or session-based auth for protected endpoints.
-
-6. **Write unit tests**
-   ```bash
-   # Create test file
-   touch backend/tests/test_user_progress_routes.py
-   ```
+1. **Audit mobile and browser experience**
+   - Test the app on multiple devices and browsers.
+   - Identify and document any remaining issues.
+2. **Implement polish and fixes**
+   - Update components and styles for mobile and browser compatibility.
+   - Collaborate with frontend team as needed.
+3. **Test and verify**
+   - Re-test all flows after fixes.
+   - Ensure no regressions are introduced.
+4. **Document changes**
+   - Summarize improvements in PRs and docs.
 
 #### Resources
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [Supabase Python Client](https://supabase.com/docs/reference/python/introduction)
-- [RESTful API Design](https://restfulapi.net/)
-- [Testing Flask Apps](https://flask.palletsprojects.com/en/2.0.x/testing/)
+- [BrowserStack Testing](https://www.browserstack.com/)
+- [Tailwind Responsive Design](https://tailwindcss.com/docs/responsive-design)
 
 ---
 
-### DB-005: Set up Redis schema for caching
+### DEP-003: Production deployment & monitoring setup
 
 #### Description
-Design and implement the Redis schema for caching needs in the backend. Document cache structure and policies, and integrate with backend services for performance improvements.
+Deploy the application to production and set up monitoring/alerting for reliability. Use Render, Vercel, or similar platforms, and integrate monitoring tools (e.g., Sentry, UptimeRobot).
 
 #### Implementation Steps
-
-1. **Review caching requirements and current usage**
-   - Identify what data should be cached and for how long.
-   - Review current Redis setup and integration points.
-
-2. **Design cache key structure and policies**
-   - Plan unique keys for each cache entry.
-   - Set expiration and eviction policies.
-
-3. **Implement caching logic in backend services**
-   - Add Redis get/set logic where needed.
-   - Handle cache misses and errors gracefully.
-
-4. **Document cache structure and usage**
-   - Update documentation with cache key formats and policies.
-
-5. **Write unit tests for caching logic**
-   ```bash
-   # Create test file
-   touch backend/tests/test_redis_caching.py
-   ```
+1. **Review deployment requirements**
+   - Confirm production environment and platform.
+2. **Deploy to production**
+   - Use CI/CD pipeline for automated deployment.
+   - Verify deployment success and app health.
+3. **Set up monitoring/alerting**
+   - Integrate Sentry, UptimeRobot, or similar tools.
+   - Configure alerts for downtime/errors.
+4. **Test production environment**
+   - Simulate failures and verify monitoring/alerts.
+5. **Document deployment/monitoring**
+   - Update README and internal docs with production setup and troubleshooting.
 
 #### Resources
-- [Redis Python Client](https://redis.io/docs/clients/python/)
-- [Python Logging](https://docs.python.org/3/library/logging.html)
-- [Pytest Documentation](https://docs.pytest.org/)
+- [Render Deployment Guide](https://render.com/docs/deploy)
+- [Sentry Monitoring](https://sentry.io/welcome/)
+- [UptimeRobot](https://uptimerobot.com/)
 
 ---
 
-### FE-B002: Create mobile-responsive design
+### DOC-001: Update documentation for release
 
 #### Description
-Refactor the frontend for full mobile responsiveness. Test across devices and browsers, and collaborate with the frontend team for consistency and best practices.
+Update all project documentation for the release, including README, setup guides, and API docs. Ensure everything is clear, up-to-date, and ready for public/production use.
 
 #### Implementation Steps
-
-1. **Review current frontend layout and components**
-   - Identify areas that are not mobile-friendly.
-   - Review Tailwind CSS usage and responsive utilities.
-
-2. **Refactor components and layouts**
-   - Use Tailwind's responsive classes to adjust layouts for different screen sizes.
-   - Ensure all interactive elements are touch-friendly.
-
-3. **Test across devices and browsers**
-   - Use browser dev tools and real devices to test responsiveness.
-   - Fix any layout or usability issues found.
-
-4. **Collaborate with frontend team**
-   - Share findings and improvements with the team.
-   - Ensure consistency in design and user experience.
-
-5. **Write E2E and component tests for mobile**
-   ```bash
-   # Create or update test files
-   touch frontend/tests/components/MobileResponsiveness.spec.js
-   # Add E2E tests as needed
-   ```
+1. **Audit current documentation**
+   - Review README, setup, and API docs for outdated or missing info.
+2. **Update and expand docs**
+   - Revise content for clarity, accuracy, and completeness.
+   - Add new sections as needed (deployment, troubleshooting, etc).
+3. **Review with team**
+   - Share updates for feedback and approval.
+4. **Publish and verify**
+   - Ensure docs are accessible and correct in the repo.
 
 #### Resources
-- [Tailwind CSS Responsive Design](https://tailwindcss.com/docs/responsive-design)
-- [Testing Vue Applications](https://vuejs.org/guide/scaling-up/testing.html)
-- [Cypress Documentation](https://docs.cypress.io/)
+- [Markdown Style Guide](https://www.markdownguide.org/basic-syntax/)
+- [ReadTheDocs](https://readthedocs.org/)
 
 ---
 
 ## Testing Your Work
-
 - Run the backend and frontend development servers.
-- Test all user progress, caching, and mobile features.
+- Test all mobile, deployment, and documentation features.
 - Write and run unit/component/E2E tests for all new code.
-- Verify mobile responsiveness and performance improvements.
+- Verify production readiness and documentation quality.
 
 ## Communication
-
 If you encounter any blockers or have questions:
-- Post in the #milestone-3 Slack channel
+- Post in the #milestone-4 Slack channel
 - Tag the project lead for urgent issues
 - Document any design decisions or assumptions in your PR description
 
@@ -143,4 +99,4 @@ Good luck with your tasks! Remember to commit your work regularly and create pul
 
 ---
 
-*This guide will be updated as Milestone 3 progresses. Good luck!*
+*This guide will be updated as Milestone 4 progresses. Good luck!*

@@ -1,135 +1,97 @@
-# Team Member 4 - Milestone 3 Task Guide
+# Team Member 4 - Milestone 4 Task Guide
 
 ## Your Tasks Overview
 
 | Task ID | Title | Estimate | Dependencies |
 |---------|-------|----------|-------------|
-| AI-009 | Implement psychological profiling logic | 8h | AI-002 |
-| DB-004 | Design and implement board state schema | 4h | DB-003 |
-| TEST-005 | Create end-to-end testing suite | 8h | FE-005, BE-005 |
+| AI-010 | Advanced agent tuning & prompt engineering | 8h | AI-009 |
+| DB-006 | Data migration & backup scripts | 4h | DB-004 |
+| TEST-008 | End-to-end polish & deployment testing | 8h | AI-010, DB-006 |
 | **Total** | | **20h** | |
 
 ## Task Details and Implementation Guide
 
-### AI-009: Implement psychological profiling logic
+### AI-010: Advanced agent tuning & prompt engineering
 
 #### Description
-Develop logic for analyzing and applying player psychological profiles. Integrate this logic with StoryAgent and SuspectAgent to adapt the narrative and character interactions to the player's traits.
+Refine and optimize AI agent prompts and parameters for improved narrative quality, coherence, and player adaptation. Experiment with prompt engineering and model settings for best results.
 
 #### Implementation Steps
-
-1. **Review player profile data model and agent integration**
-   - Examine how psychological traits are stored and accessed.
-   - Review StoryAgent and SuspectAgent code for integration points.
-
-2. **Design profiling logic**
-   - Define how traits influence narrative tone, choices, and suspect behavior.
-   - Plan for extensibility and future trait additions.
-
-3. **Implement profiling logic in agents**
-   - Add methods to analyze and apply traits in StoryAgent and SuspectAgent.
-   - Ensure logic is testable and well-documented.
-
-4. **Write unit tests for profiling logic**
-   ```bash
-   # Create test file
-   touch backend/tests/test_psychological_profiling.py
-   ```
-
-5. **Document profiling logic and integration points**
-   - Update code comments and project documentation.
+1. **Review current agent prompts and outputs**
+   - Identify areas for improvement in narrative, suspect, and clue generation.
+2. **Research prompt engineering techniques**
+   - Explore best practices for LLM prompt design and tuning.
+3. **Experiment and iterate**
+   - Test different prompt structures, temperature, and model settings.
+   - Collect feedback from team and testers.
+4. **Implement improvements**
+   - Update agent code and prompt templates.
+5. **Document changes**
+   - Summarize improvements in PRs and docs.
 
 #### Resources
-- [Pydantic Documentation](https://docs.pydantic.dev/latest/)
-- [Python Testing (pytest)](https://docs.pytest.org/)
-- [AI Agent Design](https://github.com/pydantic/pydanticai)
+- [OpenAI Prompt Engineering Guide](https://platform.openai.com/docs/guides/prompt-engineering)
+- [PydanticAI Docs](https://github.com/pydantic/pydanticai)
 
 ---
 
-### DB-004: Design and implement board state schema
+### DB-006: Data migration & backup scripts
 
 #### Description
-Design and implement the Supabase schema for detective board state persistence. This ensures that board layouts, elements, and connections are saved and restored for each user and mystery.
+Develop scripts for data migration and backup, ensuring safe upgrades and rollbacks for Supabase and Redis data. Automate regular backups and document the process.
 
 #### Implementation Steps
-
-1. **Review current board data model and requirements**
-   - Examine frontend and backend expectations for board state.
-   - Identify all fields and relationships needed.
-
-2. **Design Supabase schema**
-   - Plan tables for elements, connections, notes, and layouts.
-   - Define primary/foreign keys and indexes.
-
-3. **Implement schema in Supabase**
-   - Use SQL editor or migration scripts to create tables.
-   - Set up RLS (Row Level Security) policies for user data protection.
-
-4. **Document schema and relationships**
-   - Create ERD (Entity Relationship Diagram) and add table/column comments.
-
-5. **Write migration and rollback scripts**
-   - Ensure schema changes are version-controlled and reversible.
+1. **Review current data models and storage**
+   - Identify tables/keys requiring migration or backup.
+2. **Design migration/backup strategy**
+   - Plan for safe, reversible migrations and regular backups.
+3. **Implement scripts**
+   - Write SQL and Python scripts for migration and backup.
+   - Test on staging data.
+4. **Automate backups**
+   - Schedule regular backups using cron or CI workflows.
+5. **Document process**
+   - Update docs with migration/backup instructions and recovery steps.
 
 #### Resources
-- [Supabase Documentation](https://supabase.com/docs)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [Database Schema Design Best Practices](https://www.postgresql.org/docs/current/ddl.html)
+- [Supabase Migration Docs](https://supabase.com/docs/guides/database/migrations)
+- [PostgreSQL Backup Guide](https://www.postgresql.org/docs/current/backup-dump.html)
+- [Redis Backup Docs](https://redis.io/docs/management/backup/)
 
 ---
 
-### TEST-005: Create end-to-end testing suite
+### TEST-008: End-to-end polish & deployment testing
 
 #### Description
-Develop an end-to-end (E2E) testing suite covering major user journeys, from login to solving a mystery. Use Cypress or a similar tool for frontend E2E tests and integrate with CI for automated testing.
+Develop and run comprehensive E2E tests covering all major user flows, polish features, and deployment scenarios. Use Cypress and custom scripts for full coverage.
 
 #### Implementation Steps
-
-1. **Review major user flows and UI components**
-   - Identify critical paths (e.g., login, board interaction, suspect dialogue).
-   - Review existing E2E and integration tests.
-
-2. **Set up Cypress or similar E2E framework**
-   ```bash
-   # Install Cypress
-   npm install --save-dev cypress
-   # Create E2E test directory
-   mkdir -p frontend/cypress/e2e
-   ```
-
-3. **Write E2E test scripts**
-   ```bash
-   # Create test files
-   touch frontend/cypress/e2e/board.cy.js
-   touch frontend/cypress/e2e/suspect.cy.js
-   # ...etc.
-   ```
-   - Cover expected, edge, and failure cases for each flow.
-
-4. **Integrate with CI**
-   - Ensure E2E tests run automatically in GitHub Actions or your CI pipeline.
-
-5. **Document test coverage and results**
-   - Update documentation with test scenarios and outcomes.
+1. **Review all polish/deployment features**
+   - Identify critical paths and edge cases.
+2. **Write E2E test scripts**
+   - Cover login, board, narrative, deployment, and error scenarios.
+3. **Automate E2E tests in CI**
+   - Ensure tests run on PRs and main branch merges.
+4. **Review and fix issues**
+   - Address any failures or polish gaps found during testing.
+5. **Document test coverage**
+   - Update docs with E2E scenarios and results.
 
 #### Resources
 - [Cypress Documentation](https://docs.cypress.io/)
 - [Testing Vue Applications](https://vuejs.org/guide/scaling-up/testing.html)
-- [GitHub Actions for CI/CD](https://docs.github.com/en/actions)
 
 ---
 
 ## Testing Your Work
-
 - Run the backend and frontend development servers.
-- Test all profiling, schema, and E2E features.
+- Test all agent, migration, and E2E features.
 - Write and run unit/E2E tests for all new code.
-- Verify security and data integrity for board state.
+- Verify migration safety and deployment reliability.
 
 ## Communication
-
 If you encounter any blockers or have questions:
-- Post in the #milestone-3 Slack channel
+- Post in the #milestone-4 Slack channel
 - Tag the project lead for urgent issues
 - Document any design decisions or assumptions in your PR description
 
@@ -137,4 +99,4 @@ Good luck with your tasks! Remember to commit your work regularly and create pul
 
 ---
 
-*This guide will be updated as Milestone 3 progresses. Good luck!*
+*This guide will be updated as Milestone 4 progresses. Good luck!*
