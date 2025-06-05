@@ -44,7 +44,11 @@
         :style="boardTransformStyle"
       >
         <!-- SVG connections layer -->
-        <svg class="connections-layer" :width="boardWidth" :height="boardHeight">
+            <svg
+          class="connections-layer"
+          :width="boardWidth"
+          :height="boardHeight"
+        >
           <ElementConnection
             v-for="connection in connections"
             :key="connection.id"
@@ -111,8 +115,29 @@
   >
 
   <template v-if="selectedElement.type === 'suspect'">
-    <SuspectProfile :suspect="selectedElement" />
-  </template>
+  <h3>Edit Suspect</h3>
+  <div class="suspect-sidebar-content">
+    <div class="image-preview">
+      <img :src="placeholder" alt="Suspect photo" />
+    </div>
+    <div class="fields">
+      <label>Name:
+        <input v-model="editElement.name" />
+      </label>
+      <label>Motive:
+        <input v-model="editElement.motive" />
+      </label>
+      <label>Alibi:
+        <input v-model="editElement.alibi" />
+      </label>
+      <div class="sidebar-actions">
+        <button @click="saveElementEdit">Save</button>
+        <button @click="closeSidebar">Close</button>
+      </div>
+    </div>
+  </div>
+</template>
+
   <template v-else>
     <h3>Edit Element</h3>
     <label>Name:<input v-model="editElement.name" /></label>
@@ -141,6 +166,7 @@ import LocationElement from './LocationElement.vue';
 import NoteElement from './NoteElement.vue';
 import BoardElement from './BoardElement.vue';
 import ElementConnection from './ElementConnection.vue';
+import placeholder from '@/assets/suspect/suspect-default.jpg';
 
 const elementWidth = 120;
 const elementHeight = 70;
@@ -270,26 +296,43 @@ const cancelConnection = () => {
   isConnecting.value = false;
   connectionSource.value = null;
   tempMousePos.value = null;
+  dragging = null;
+  window.removeEventListener('mousemove', onDrag);
+  window.removeEventListener('mouseup', endDrag);
 };
-const onElementClick = (element) => {
+
+const onElementClick = async (element) => {
   if (!isConnecting.value) {
-    // Select/deselect element
     selectedElementId.value = selectedElementId.value === element.id ? null : element.id;
     return;
   }
+
   if (!connectionSource.value) {
     connectionSource.value = element;
-  } else if (connectionSource.value.id !== element.id) {
+  } else if (connectionSource.value.id === element.id) {
+    fullyResetConnectionState();
+  } else {
     boardStore.addConnection({
       sourceId: connectionSource.value.id,
       targetId: element.id,
       type: selectedConnectionType.value,
     });
-    isConnecting.value = false;
-    connectionSource.value = null;
-    tempMousePos.value = null;
+
+    await nextTick(); // 🛠 Wait for DOM to update connection
+    fullyResetConnectionState();
   }
 };
+
+const fullyResetConnectionState = () => {
+  isConnecting.value = false;
+  connectionSource.value = null;
+  tempMousePos.value = null;
+  dragging = null;
+  window.removeEventListener('mousemove', onDrag);
+  window.removeEventListener('mouseup', endDrag);
+  selectedElementId.value = null;
+};
+
 const deleteConnection = (id) => {
   boardStore.deleteConnection(id);
 };
@@ -629,10 +672,12 @@ const endSidebarDrag = () => {
   color: #003399;
 }
 
+
 @media (max-width: 600px) {
   .board-controls {
     flex-direction: column;
     align-items: stretch;
   }
 }
+
 </style> 

@@ -1,5 +1,10 @@
 <template>
   <div class="suspect-element">
+  <img
+  :src="element?.imageUrl || defaultImage"
+  alt="Suspect Image"
+  class="suspect-photo"
+/>
     <button class="delete-button" @click.stop="emit('delete', element.id)">×</button>
     <div class="element-header">{{ element?.name || 'Unnamed Suspect' }}</div>
     <div class="element-body">
@@ -12,6 +17,7 @@
 
 
 <script setup>
+import defaultImage from '../../../assets/suspect/suspect-default.jpg';
 const emit = defineEmits(['delete']);
 
 defineProps({
@@ -42,6 +48,13 @@ defineProps({
   gap: 0.3em;
   transition: transform 0.2s ease-in-out;
 }
+.suspect-photo {
+  width: 100%;
+  height: 5em;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.5em;
+} 
 
 .suspect-element:hover {
   transform: scale(1.02);

@@ -1,6 +1,11 @@
 <template>
   <div class="clue-element">
     <button class="delete-button" @click.stop="emit('delete', element.id)">×</button>
+    <img
+      :src="defaultImage"
+      alt="Clue image"
+      class="element-photo"
+    />
     <div class="element-header">Clue</div>
     <div class="element-body">
       <p>{{ element?.description || 'clue' }}</p>
@@ -10,6 +15,7 @@
 </template>
 
 <script setup>
+import defaultImage from '../../../assets/clue/clue-default.jpg';
 const emit = defineEmits(['delete'])
 
 defineProps({
@@ -88,5 +94,14 @@ defineProps({
   color: #888;
   margin-top: auto;
   text-align: right;
+}
+
+.element-photo {
+  width: 100%;
+  height: 5em; /* or 4em if 5em still pushes it */
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.5em;
+  display: block;
 }
 </style>

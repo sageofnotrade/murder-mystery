@@ -27,6 +27,33 @@
     >
       {{ connection.label }}
     </text>
+    
+    <!-- 🆕 Add this right below the label -->
+    <g
+      v-if="midpoint"
+      @click.stop="emit('delete', connection.id)"
+      style="cursor: pointer;"
+    >
+      <circle
+        :cx="midpoint.x"
+        :cy="midpoint.y"
+        r="12"
+        fill="#fff"
+        stroke="#d33"
+        stroke-width="2"
+      />
+      <text
+        :x="midpoint.x"
+        :y="midpoint.y + 4"
+        text-anchor="middle"
+        font-size="14"
+        fill="#d33"
+        style="pointer-events: none;"
+      >
+        ×
+      </text>
+    </g>
+    
     <defs>
       <filter :id="glowFilterId" x="-30%" y="-30%" width="160%" height="160%">
         <feDropShadow dx="0" dy="0" stdDeviation="6" :flood-color="threadColor" flood-opacity="0.7" />
@@ -40,7 +67,7 @@
 
 <script setup>
 import { computed, ref, watchEffect } from 'vue';
-const emit = defineEmits(['edit-label']);
+const emit = defineEmits(['edit-label', 'delete']); // add 'delete'
 const props = defineProps({
   connection: { type: Object, required: true },
   elements: { type: Array, required: true },
@@ -48,8 +75,12 @@ const props = defineProps({
 });
 const width = 120; // element width (should match element style)
 const height = 70; // element height (should match element style)
-const source = props.elements.find(e => e.id === props.connection.sourceId);
-const target = props.elements.find(e => e.id === props.connection.targetId);
+const source = computed(() =>
+  props.elements.find(e => e.id === props.connection.sourceId)
+);
+const target = computed(() =>
+  props.elements.find(e => e.id === props.connection.targetId)
+);
 
 // Color and thickness by type
 const typeStyles = {
@@ -62,29 +93,33 @@ const threadColor = typeStyles[props.connection.type]?.color || '#b33';
 const threadWidth = typeStyles[props.connection.type]?.width || 4;
 
 // Calculate a smooth Bezier path between source and target
-let bezierPath = '';
-let midpoint = { x: 0, y: 0 };
-if (source && target) {
-  const x1 = source.position.x + width / 2;
-  const y1 = source.position.y + height / 2;
-  const x2 = target.position.x + width / 2;
-  const y2 = target.position.y + height / 2;
-  // Control points for a nice curve (slight waviness)
+const bezierPath = computed(() => {
+  if (!source.value || !target.value) return '';
+  const x1 = source.value.position.x + width / 2;
+  const y1 = source.value.position.y + height / 2;
+  const x2 = target.value.position.x + width / 2;
+  const y2 = target.value.position.y + height / 2;
+
   const dx = x2 - x1;
   const dy = y2 - y1;
   const curve = 0.3 * Math.sqrt(dx * dx + dy * dy);
-  const wave = Math.sin(Date.now() / 800 + (x1 + y1) / 100) * 10; // idle wave
+  const wave = Math.sin(Date.now() / 800 + (x1 + y1) / 100) * 10;
+
   const cx1 = x1 + dx * 0.25 + (dy > 0 ? curve : -curve) * 0.2 + (!isGlowing.value ? wave : 0);
   const cy1 = y1 + dy * 0.25 + (dx > 0 ? curve : -curve) * 0.1 + (!isGlowing.value ? wave : 0);
   const cx2 = x1 + dx * 0.75 - (dy > 0 ? curve : -curve) * 0.2 - (!isGlowing.value ? wave : 0);
   const cy2 = y1 + dy * 0.75 - (dx > 0 ? curve : -curve) * 0.1 - (!isGlowing.value ? wave : 0);
-  bezierPath = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
-  // Midpoint for label
-  midpoint = {
-    x: (x1 + x2) / 2,
-    y: (y1 + y2) / 2,
+
+  return `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
+});
+
+const midpoint = computed(() => {
+  if (!source.value || !target.value) return { x: 0, y: 0 };
+  return {
+    x: (source.value.position.x + target.value.position.x) / 2 + width / 2,
+    y: (source.value.position.y + target.value.position.y) / 2 + height / 2,
   };
-}
+});
 
 // Animation: glow if attached to selected element, else idle wave
 const isGlowing = computed(() =>
