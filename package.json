@@ -3,6 +3,8 @@
     "@types/node": "^22.15.29"
   },
   "dependencies": {
-    "lucide-vue-next": "^0.511.0"
+    "h3": "^1.15.3",
+    "lucide-vue-next": "^0.511.0",
+    "redis": "^5.5.5"
   }
 }
