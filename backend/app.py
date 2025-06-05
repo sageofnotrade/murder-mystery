@@ -2,6 +2,15 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+import sys
+from pathlib import Path
+
+# Add the project root directory to Python path when running directly
+if __name__ == '__main__':
+    project_root = str(Path(__file__).parent.parent)
+    if project_root not in sys.path:
+        sys.path.append(project_root)
+
 from backend.config import get_config
 
 # Load environment variables
@@ -12,9 +21,6 @@ from backend.routes.auth import auth_bp
 from backend.routes.template_routes import template_bp
 from backend.routes.story_routes import story_bp
 from backend.routes.clue_routes import clue_bp
-# from backend.routes.users import users_bp
-# from backend.routes.mysteries import mysteries_bp
-# from backend.routes.board import board_bp
 
 # Create Flask app
 app = Flask(__name__)
