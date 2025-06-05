@@ -2,8 +2,8 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 from supabase import Client
-from models.story_models import StoryState
-from backend.models.clue_models import ClueCreate, ClueDetail, ClueConnection, ClueAnalysisRequest
+from backend.agents.models.story_models import StoryState
+from backend.agents.models.clue_models import ClueCreate, ClueDetail, ClueConnection, ClueAnalysisRequest
 
 class ClueService:
     def __init__(self, supabase: Client):

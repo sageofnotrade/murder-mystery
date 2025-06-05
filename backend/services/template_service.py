@@ -2,8 +2,8 @@ import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
-from models.template_models import MysteryTemplate
-from config import get_config
+from backend.agents.models.template_models import MysteryTemplate
+from backend.config import get_config
 from supabase import create_client, Client
 
 class TemplateService:

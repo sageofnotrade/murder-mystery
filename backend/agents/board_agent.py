@@ -9,6 +9,7 @@ Uses ModelRouter to select appropriate models for different tasks:
 
 from .base_agent import BaseAgent
 from .model_router import ModelRouter
+from .models.psychological_profile import PsychologicalProfile, create_default_profile
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, Any, Optional, List, Union, Annotated
 import requests
@@ -79,6 +80,14 @@ class BoardGenerateOutput(BaseModel):
 
     board_state: BoardState
     sources: List[str] = Field(default_factory=list)
+
+class BoardInteractionInput(BaseModel):
+    """Input model for board interactions."""
+    model_config = ConfigDict(extra="ignore")
+
+    action: str
+    player_profile: Optional[PsychologicalProfile] = Field(default_factory=create_default_profile)
+    context: dict = Field(default_factory=dict)
 
 # --- BoardAgent Dependencies ---
 
@@ -629,6 +638,39 @@ class BoardAgent(BaseAgent):
                 "connections": {},
                 "notes": {"error": error_msg}
             }
+
+    def _llm_generate_board_response(self, action: str, context: dict) -> str:
+        """Generate a board response that matches the player's social style."""
+        # Get psychological adaptations
+        player_profile = context.get("player_profile", create_default_profile())
+        adaptations = player_profile.get_narrative_adaptations()
+        
+        # Create prompt with psychological adaptations
+        prompt = f"""
+        Generate a board response based on:
+        
+        Action: {action}
+        
+        Psychological Adaptations:
+        {json.dumps(adaptations, indent=2)}
+        
+        Requirements:
+        1. Adapt interaction style based on player's social style
+        2. For direct players: Provide clear, straightforward responses
+        3. For indirect players: Use more subtle, nuanced responses
+        4. Match the pace of interaction to player's social style
+        5. Maintain game flow and engagement
+        """
+        
+        # Use the model router to select appropriate model
+        model = self.model_router.get_model_for_task("board_interaction")
+        
+        try:
+            response = model.generate(prompt)
+            return response.strip()
+        except Exception as e:
+            print(f"Error generating board response: {str(e)}")
+            return f"You {action}."
 
 # --- Inline Tests ---
 import unittest

@@ -9,6 +9,7 @@ Uses ModelRouter to select appropriate models for different tasks:
 
 from .base_agent import BaseAgent
 from .model_router import ModelRouter
+from .models.psychological_profile import PsychologicalProfile, create_default_profile
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, Any, Optional, List, Union, Annotated
 import requests
@@ -69,6 +70,7 @@ class SuspectDialogueInput(BaseModel):
 
     question: str
     suspect_state: SuspectState
+    player_profile: Optional[PsychologicalProfile] = Field(default_factory=create_default_profile)
     context: dict = Field(default_factory=dict)
 
 class SuspectDialogueOutput(BaseModel):
@@ -508,174 +510,54 @@ class SuspectAgent(BaseAgent):
             )
 
     def _llm_generate_dialogue(self, question: str, suspect_state: SuspectState, context: dict) -> SuspectDialogueOutput:
+        """Generate dialogue for a suspect based on the question and their current state."""
+        # Get psychological adaptations
+        player_profile = context.get("player_profile", create_default_profile())
+        adaptations = player_profile.get_dialogue_adaptations()
+        
+        # Create prompt with psychological adaptations
+        prompt = f"""
+        Generate suspect dialogue based on:
+        
+        Question: {question}
+        Suspect State: {json.dumps(suspect_state.dict(), indent=2)}
+        
+        Psychological Adaptations:
+        {json.dumps(adaptations, indent=2)}
+        
+        Requirements:
+        1. Adapt dialogue style based on player's psychological profile
+        2. Consider player's cognitive style for information presentation
+        3. Adjust emotional content based on player's emotional tendency
+        4. Match interaction pace to player's social style
+        5. Maintain suspect's personality and emotional state
         """
-        Generate dialogue for a suspect using the ModelRouter.
-        Uses a two-step process:
-        1. First, use deepseek-r1t-chimera to analyze and plan the dialogue (reasoning)
-        2. Then, use mistral-nemo to write the actual dialogue (writing)
-
-        Args:
-            question (str): The question being asked to the suspect.
-            suspect_state (SuspectState): The current state of the suspect.
-            context (dict): Additional context for the dialogue generation.
-
-        Returns:
-            SuspectDialogueOutput: The generated dialogue and updated suspect state.
-        """
-        import json
-        from pydantic_ai.messages import Message
-
-        # Format context for the prompt
-        context_str = json.dumps(context, indent=2) if context else "{}"
-        suspect_state_str = json.dumps(suspect_state.model_dump(), indent=2)
-
-        if not self.model_router.api_key:
-            if self.use_mem0:
-                self.update_memory("last_error", "Missing LLM API key")
-            # Fallback to a simple dialogue if API key is missing
-            updated_state = suspect_state.model_copy()
-            updated_state.interviewed = True
-            return SuspectDialogueOutput(
-                dialogue=f"\"I don't know anything about that,\" {suspect_state.name} says nervously.",
-                updated_state=updated_state
-            )
-
-        # First, create a planning prompt for the reasoning model
-        planning_system_prompt = (
-            "You are an expert in criminal psychology and suspect behavior. "
-            "Analyze the suspect's profile, state, and the question being asked. "
-            "Plan how the suspect would realistically respond based on their psychology, "
-            "what they know, what they're hiding, and their current emotional state."
-        )
-
-        planning_user_prompt = (
-            f"Plan a dialogue response for suspect {suspect_state.name} to this question: \"{question}\"\n\n"
-            f"Current suspect state: {suspect_state_str}\n\n"
-            f"Additional context: {context_str}\n\n"
-            "Create a structured plan that addresses:\n"
-            "1. The suspect's likely psychological reaction to this question\n"
-            "2. What information they would reveal or conceal\n"
-            "3. Their emotional response and body language\n"
-            "4. How this interaction might change their state (more suspicious, nervous, etc.)\n"
-            "5. Any potential contradictions or inconsistencies in their response"
-        )
-
-        planning_messages = [
-            Message(role="system", content=planning_system_prompt),
-            Message(role="user", content=planning_user_prompt)
-        ]
-
+        
+        # Use the model router to select appropriate model
+        model = self.model_router.get_model_for_task("dialogue_generation")
+        
         try:
-            # Generate the dialogue plan using the reasoning model
-            planning_response = self.model_router.complete(
-                messages=planning_messages,
-                task_type="reasoning",
-                temperature=0.3,  # Lower temperature for planning
-                max_tokens=800
-            )
-
-            # Store the planning response in memory for debugging if tracking is enabled
-            if self.use_mem0 and self.mem0_config.get("track_performance", True):
-                self.update_memory("dialogue_planning_response", str(planning_response.content)[:500])
-                self.update_memory("dialogue_planning_model", self.model_router.get_model_name_for_task("reasoning"))
-
-            # Now, create a writing prompt for the writing model
-            writing_system_prompt = (
-                "You are an expert in criminal psychology and suspect behavior. "
-                "Generate realistic dialogue for a suspect being questioned, based on their profile, state, and the provided plan. "
-                "The dialogue should reflect their personality, emotional state, and what they know or are hiding. "
-                "Also determine how the suspect's state changes after this interaction."
-            )
-
-            writing_user_prompt = (
-                f"Generate dialogue for suspect {suspect_state.name} in response to this question: \"{question}\"\n\n"
-                f"Current suspect state: {suspect_state_str}\n\n"
-                f"Additional context: {context_str}\n\n"
-                f"Response plan:\n{planning_response.content}\n\n"
-                "Provide:\n"
-                "1. The suspect's dialogue response\n"
-                "2. An updated suspect state showing how this interaction affected them"
-            )
-
-            writing_messages = [
-                Message(role="system", content=writing_system_prompt),
-                Message(role="user", content=writing_user_prompt)
-            ]
-
-            # Generate the dialogue using the writing model
-            writing_response = self.model_router.complete(
-                messages=writing_messages,
-                task_type="writing",
-                temperature=0.7,  # Higher temperature for creative writing
-                max_tokens=1000
-            )
-
-            # Store the writing response in memory for debugging if tracking is enabled
-            if self.use_mem0 and self.mem0_config.get("track_performance", True):
-                self.update_memory("dialogue_writing_response", str(writing_response.content)[:500])
-                self.update_memory("dialogue_writing_model", self.model_router.get_model_name_for_task("writing"))
-
-            # Extract the generated dialogue
-            dialogue_text = writing_response.content
-
-            if not dialogue_text:
-                if self.use_mem0:
-                    self.update_memory("last_error", "Empty dialogue response from LLM")
-                updated_state = suspect_state.model_copy()
-                updated_state.interviewed = True
-                return SuspectDialogueOutput(
-                    dialogue=f"\"I don't know anything about that,\" {suspect_state.name} says nervously.",
-                    updated_state=updated_state
-                )
-
-            # Parse the dialogue and updated state
-            try:
-                # Try to parse as JSON first
-                response_dict = json.loads(dialogue_text)
-                dialogue = response_dict.get("dialogue", "")
-                updated_state_dict = response_dict.get("updated_state", {})
-                updated_state = SuspectState(**updated_state_dict)
-
-                return SuspectDialogueOutput(
-                    dialogue=dialogue,
-                    updated_state=updated_state
-                )
-            except json.JSONDecodeError:
-                # If not JSON, extract dialogue and make minimal state updates
-                dialogue = dialogue_text
-                updated_state = suspect_state.model_copy()
-                updated_state.interviewed = True
-
-                # Try to infer emotional state from dialogue
-                if "nervous" in dialogue_text.lower() or "fidgeting" in dialogue_text.lower():
-                    updated_state.emotional_state = "nervous"
-                elif "angry" in dialogue_text.lower() or "shouting" in dialogue_text.lower():
-                    updated_state.emotional_state = "angry"
-                elif "calm" in dialogue_text.lower() or "composed" in dialogue_text.lower():
-                    updated_state.emotional_state = "calm"
-
-                # Increase suspicious level if contradictions are detected
-                if "contradiction" in dialogue_text.lower() or "inconsistent" in dialogue_text.lower():
-                    updated_state.suspicious_level += 1
-                    if "contradiction" not in updated_state.contradictions:
-                        updated_state.contradictions.append("Inconsistent statement detected")
-
-                return SuspectDialogueOutput(
-                    dialogue=dialogue,
-                    updated_state=updated_state
-                )
-
-        except Exception as e:
-            error_msg = f"LLM dialogue generation error: {str(e)}"
-            if self.use_mem0:
-                self.update_memory("last_error", error_msg)
-
-            # Fallback to a simple dialogue
-            updated_state = suspect_state.model_copy()
+            response = model.generate(prompt)
+            dialogue = response.strip()
+            
+            # Update suspect state
+            updated_state = suspect_state.copy()
             updated_state.interviewed = True
+            
+            # Adjust suspicious level based on psychological profile
+            if player_profile.cognitive_style == "analytical":
+                # Analytical players are more likely to spot inconsistencies
+                updated_state.suspicious_level += 1
+            
             return SuspectDialogueOutput(
-                dialogue=f"\"I don't know anything about that,\" {suspect_state.name} says nervously.",
+                dialogue=dialogue,
                 updated_state=updated_state
+            )
+        except Exception as e:
+            print(f"Error generating dialogue: {str(e)}")
+            return SuspectDialogueOutput(
+                dialogue="The suspect remains silent.",
+                updated_state=suspect_state
             )
 
     def generate_dialogue(self, question: str, suspect_state: SuspectState, context: dict = None) -> SuspectDialogueOutput:

@@ -2,14 +2,22 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-from config import get_config
+import sys
+from pathlib import Path
+
+# Add the project root directory to Python path when running directly
+if __name__ == '__main__':
+    project_root = str(Path(__file__).parent.parent)
+    if project_root not in sys.path:
+        sys.path.append(project_root)
+
+from backend.config import get_config
 
 # Load environment variables
 load_dotenv()
 
 def create_app(test_config=None):
     """Create and configure the Flask application."""
-    # Create Flask app
     app = Flask(__name__)
     CORS(app)
 
@@ -22,19 +30,18 @@ def create_app(test_config=None):
         app.config['REDIS_URL'] = config.REDIS_URL
         app.config['REDIS_TOKEN'] = config.REDIS_TOKEN
     else:
-        # Override with test configuration
         app.config.update(test_config)
 
     # Import routes
-    from routes.auth import auth_bp
-    from routes.template_routes import template_bp
-    from routes.story_routes import story_bp
-    from routes.clue_routes import clue_bp
-    from routes.suspect_routes import suspect_bp
-    from routes.user_progress_routes import user_progress_bp
-    # from routes.users import users_bp
-    # from routes.mysteries import mysteries_bp
-    # from routes.board import board_bp
+    from backend.routes.auth import auth_bp
+    from backend.routes.template_routes import template_bp
+    from backend.routes.story_routes import story_bp
+    from backend.routes.clue_routes import clue_bp
+    from backend.routes.suspect_routes import suspect_bp
+    from backend.routes.user_progress_routes import user_progress_bp
+    # from backend.routes.users import users_bp
+    # from backend.routes.mysteries import mysteries_bp
+    # from backend.routes.board import board_bp
 
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')

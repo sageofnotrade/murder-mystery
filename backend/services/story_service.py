@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import UUID
 import json
 from supabase import create_client, Client
-from models.story_models import StoryState, PlayerAction, NarrativeSegment, StoryChoice, StoryResponse
+from backend.agents.models.story_models import StoryState, PlayerAction, NarrativeSegment, StoryChoice, StoryResponse
 from redis import Redis
 import os
 
