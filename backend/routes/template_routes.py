@@ -2,8 +2,8 @@ from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 from typing import Dict, Any
 
-from models.template_models import MysteryTemplate
-from services.template_service import TemplateService
+from backend.agents.models.template_models import MysteryTemplate
+from backend.services.template_service import TemplateService
 
 template_bp = Blueprint('templates', __name__)
 template_service = TemplateService()

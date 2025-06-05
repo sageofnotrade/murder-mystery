@@ -1,10 +1,19 @@
 import pytest
-from models.story_models import (
+from backend.agents.models.story_models import (
     PlayerAction, NarrativeSegment, StoryChoice,
     StoryState, StoryResponse
 )
 from datetime import datetime
 from uuid import UUID, uuid4
+import unittest
+from backend.agents.models.psychological_profile import (
+    PsychologicalProfile,
+    create_default_profile,
+    TraitIntensity,
+    CognitiveStyle,
+    EmotionalTendency,
+    SocialStyle
+)
 
 def test_player_action_model():
     # Test valid action creation
@@ -165,4 +174,61 @@ def test_story_state_validation():
             mystery_id=uuid4(),
             current_scene="library",
             narrative_history=["Invalid segment"]  # Should be a list of NarrativeSegment objects
-        ) 
+        )
+
+class TestPsychologicalProfile(unittest.TestCase):
+    def setUp(self):
+        self.default_profile = create_default_profile()
+        
+    def test_default_profile_creation(self):
+        """Test that default profile is created with expected values."""
+        self.assertEqual(self.default_profile.cognitive_style, CognitiveStyle.ANALYTICAL)
+        self.assertEqual(self.default_profile.emotional_tendency, EmotionalTendency.RESERVED)
+        self.assertEqual(self.default_profile.social_style, SocialStyle.DIRECT)
+        self.assertIn("curiosity", self.default_profile.traits)
+        self.assertIn("empathy", self.default_profile.traits)
+        self.assertIn("perceptiveness", self.default_profile.traits)
+        
+    def test_narrative_adaptations(self):
+        """Test that narrative adaptations are generated correctly."""
+        adaptations = self.default_profile.get_narrative_adaptations()
+        self.assertIn("cognitive_style", adaptations)
+        self.assertIn("emotional_tendency", adaptations)
+        self.assertIn("social_style", adaptations)
+        
+    def test_dialogue_adaptations(self):
+        """Test that dialogue adaptations are generated correctly."""
+        adaptations = self.default_profile.get_dialogue_adaptations()
+        self.assertIn("cognitive_style", adaptations)
+        self.assertIn("emotional_tendency", adaptations)
+        self.assertIn("social_style", adaptations)
+        
+    def test_custom_trait_impact(self):
+        """Test that custom traits affect adaptations."""
+        profile = create_default_profile()
+        profile.traits["skepticism"] = TraitIntensity.HIGH
+        
+        adaptations = profile.get_narrative_adaptations()
+        self.assertIn("skepticism", adaptations["traits"])
+        
+    def test_trait_intensity_impact(self):
+        """Test that trait intensity affects adaptations."""
+        profile = create_default_profile()
+        profile.traits["curiosity"] = TraitIntensity.VERY_HIGH
+        
+        adaptations = profile.get_narrative_adaptations()
+        self.assertEqual(adaptations["traits"]["curiosity"], "very_high")
+        
+    def test_profile_serialization(self):
+        """Test that profile can be serialized and deserialized."""
+        profile = create_default_profile()
+        profile_dict = profile.dict()
+        new_profile = PsychologicalProfile(**profile_dict)
+        
+        self.assertEqual(profile.cognitive_style, new_profile.cognitive_style)
+        self.assertEqual(profile.emotional_tendency, new_profile.emotional_tendency)
+        self.assertEqual(profile.social_style, new_profile.social_style)
+        self.assertEqual(profile.traits, new_profile.traits)
+
+if __name__ == '__main__':
+    unittest.main() 

@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from supabase import create_client, Client
 import os
-from config import get_config
+from backend.config import get_config
 from werkzeug.exceptions import HTTPException
 import re
 

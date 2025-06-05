@@ -9,6 +9,7 @@ Uses ModelRouter to select appropriate models for different tasks:
 
 from .base_agent import BaseAgent
 from .model_router import ModelRouter
+from .models.psychological_profile import PsychologicalProfile, create_default_profile
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, Any, Optional, List, Union, Annotated
 import requests
@@ -57,6 +58,14 @@ class ClueGenerateOutput(BaseModel):
 
     clue: ClueData
     sources: List[str] = Field(default_factory=list)
+
+class CluePresentationInput(BaseModel):
+    """Input model for presenting clues."""
+    model_config = ConfigDict(extra="ignore")
+
+    clue: str
+    player_profile: Optional[PsychologicalProfile] = Field(default_factory=create_default_profile)
+    context: dict = Field(default_factory=dict)
 
 # --- ClueAgent Dependencies ---
 
@@ -518,6 +527,39 @@ class ClueAgent(BaseAgent):
                 "details": "Unable to analyze this clue at the moment.",
                 "context": context
             }
+
+    def _llm_present_clue(self, clue: str, context: dict) -> str:
+        """Present a clue in a way that matches the player's cognitive style."""
+        # Get psychological adaptations
+        player_profile = context.get("player_profile", create_default_profile())
+        adaptations = player_profile.get_narrative_adaptations()
+        
+        # Create prompt with psychological adaptations
+        prompt = f"""
+        Present this clue in a way that matches the player's cognitive style:
+        
+        Clue: {clue}
+        
+        Psychological Adaptations:
+        {json.dumps(adaptations, indent=2)}
+        
+        Requirements:
+        1. Adapt clue presentation based on player's cognitive style
+        2. For analytical players: Focus on logical connections and details
+        3. For intuitive players: Emphasize patterns and implications
+        4. Adjust complexity based on player's cognitive style
+        5. Maintain mystery and engagement
+        """
+        
+        # Use the model router to select appropriate model
+        model = self.model_router.get_model_for_task("clue_presentation")
+        
+        try:
+            response = model.generate(prompt)
+            return response.strip()
+        except Exception as e:
+            print(f"Error presenting clue: {str(e)}")
+            return f"You notice: {clue}"
 
 # --- Inline Tests ---
 import unittest

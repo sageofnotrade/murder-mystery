@@ -9,6 +9,7 @@ Uses ModelRouter to select appropriate models for different tasks:
 
 from .base_agent import BaseAgent
 from .model_router import ModelRouter
+from .models.psychological_profile import PsychologicalProfile, create_default_profile
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, Any, Optional, List, Union, Annotated
 import requests
@@ -99,6 +100,14 @@ class SynchronizationResult(BaseModel):
     synchronized_state: Dict[str, Any]
     conflicts: List[Dict[str, Any]] = Field(default_factory=list)
     messages: List[str] = Field(default_factory=list)
+
+class CoordinationInput(BaseModel):
+    """Input model for coordinating agent interactions."""
+    model_config = ConfigDict(extra="ignore")
+
+    action: str
+    player_profile: Optional[PsychologicalProfile] = Field(default_factory=create_default_profile)
+    context: dict = Field(default_factory=dict)
 
 # --- CoordinatorAgent Dependencies ---
 
@@ -1116,3 +1125,42 @@ class CoordinatorAgent(BaseAgent):
 
                 # Return a simple recommendation
                 return self._recommend_actions_traditional()
+
+    def _llm_coordinate_agents(self, action: str, context: dict) -> Dict[str, Any]:
+        """Coordinate agent interactions based on player's psychological profile."""
+        # Get psychological adaptations
+        player_profile = context.get("player_profile", create_default_profile())
+        adaptations = player_profile.get_narrative_adaptations()
+        
+        # Create prompt with psychological adaptations
+        prompt = f"""
+        Coordinate agent interactions based on:
+        
+        Action: {action}
+        
+        Psychological Adaptations:
+        {json.dumps(adaptations, indent=2)}
+        
+        Requirements:
+        1. Coordinate narrative flow based on player's cognitive style
+        2. Adjust emotional content based on player's emotional tendency
+        3. Match interaction pace to player's social style
+        4. Ensure consistent psychological adaptation across all agents
+        5. Maintain story coherence and engagement
+        """
+        
+        # Use the model router to select appropriate model
+        model = self.model_router.get_model_for_task("agent_coordination")
+        
+        try:
+            response = model.generate(prompt)
+            coordination_plan = json.loads(response.strip())
+            return coordination_plan
+        except Exception as e:
+            print(f"Error coordinating agents: {str(e)}")
+            return {
+                "narrative_agent": {"action": "generate_narrative", "context": context},
+                "suspect_agent": {"action": "generate_dialogue", "context": context},
+                "clue_agent": {"action": "present_clue", "context": context},
+                "board_agent": {"action": "update_board", "context": context}
+            }

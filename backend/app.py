@@ -2,19 +2,19 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-from config import get_config
+from backend.config import get_config
 
 # Load environment variables
 load_dotenv()
 
 # Import routes
-from routes.auth import auth_bp
-from routes.template_routes import template_bp
-from routes.story_routes import story_bp
-from routes.clue_routes import clue_bp
-# from routes.users import users_bp
-# from routes.mysteries import mysteries_bp
-# from routes.board import board_bp
+from backend.routes.auth import auth_bp
+from backend.routes.template_routes import template_bp
+from backend.routes.story_routes import story_bp
+from backend.routes.clue_routes import clue_bp
+# from backend.routes.users import users_bp
+# from backend.routes.mysteries import mysteries_bp
+# from backend.routes.board import board_bp
 
 # Create Flask app
 app = Flask(__name__)

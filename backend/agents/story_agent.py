@@ -8,6 +8,7 @@ Uses ModelRouter to select appropriate models for different tasks:
 
 from .base_agent import BaseAgent
 from .model_router import ModelRouter
+from .models.psychological_profile import PsychologicalProfile, create_default_profile
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Optional, Any, Annotated, Union
 import requests
@@ -44,7 +45,9 @@ class StoryState(BaseModel):
 class PlayerProfile(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    psychological_traits: Dict[str, str] = Field(default_factory=dict)
+    psychological_profile: PsychologicalProfile = Field(
+        default_factory=create_default_profile
+    )
     preferences: Dict[str, str] = Field(default_factory=dict)
     role: str = "detective"  # Can be "detective", "suspect", "witness", etc.
 
@@ -215,7 +218,7 @@ class StoryAgent(BaseAgent):
             "title": story_state.title,
             "discovered_clues": story_state.discovered_clues,
             "player_role": player_profile.role,
-            "player_traits": player_profile.psychological_traits,
+            "player_traits": player_profile.psychological_profile.traits,
             "player_preferences": player_profile.preferences
         }
 
@@ -358,48 +361,48 @@ class StoryAgent(BaseAgent):
             return StoryAgentOutput(narrative=narrative, story_state=story_state).model_dump()
 
     def start_new_story(self, template: dict, player_profile: dict) -> dict:
-        """Start a new story based on a template and player profile.
-        Args:
-            template (dict): The mystery template
-            player_profile (dict): The player's psychological profile
-        Returns:
-            dict: The initial story state (StoryState)
-        """
-        # Parse player profile
-        parsed_profile = PlayerProfile(**player_profile) if isinstance(player_profile, dict) else player_profile
-
-        # Store template and player profile in Mem0 for future reference
-        if self.use_mem0:
-            self.update_memory("template", str(template))
-            self.update_memory("player_profile", str(player_profile))
-
-        # Determine initial scene based on player role
-        initial_scene = "introduction"
-        if parsed_profile.role == "suspect":
-            initial_scene = "suspect_introduction"
-        elif parsed_profile.role == "witness":
-            initial_scene = "witness_introduction"
-
-        # Build suspect states
-        suspect_states = {}
-        for suspect in template.get("suspects", []):
-            suspect_id = suspect.get("id") or suspect.get("name")
-            # If player is a suspect, mark their character accordingly
-            is_player = parsed_profile.role == "suspect" and suspect.get("is_player", False)
-            suspect_states[suspect_id] = SuspectState(
-                name=suspect.get("name", "Unknown"),
-                suspicious_level=0 if is_player else suspect.get("initial_suspicion", 0)
-            )
-
-        state = StoryState(
+        """Start a new story based on the template and player profile."""
+        # Convert player profile to include psychological profile
+        if isinstance(player_profile, dict):
+            if "psychological_profile" not in player_profile:
+                player_profile["psychological_profile"] = create_default_profile()
+            else:
+                player_profile["psychological_profile"] = PsychologicalProfile(**player_profile["psychological_profile"])
+        
+        # Get psychological adaptations
+        adaptations = player_profile.get("psychological_profile", create_default_profile()).get_narrative_adaptations()
+        
+        # Create initial story state
+        story_state = StoryState(
             template_id=template.get("id"),
             title=template.get("title", "Untitled Mystery"),
-            current_scene=initial_scene,
-            narrative_history=[],
-            discovered_clues=[],
-            suspect_states=suspect_states
+            current_scene="introduction"
         )
-        return state.model_dump()
+        
+        # Generate initial narrative with psychological adaptations
+        prompt = f"""
+        Generate an introduction for a mystery story based on:
+        
+        Template: {json.dumps(template, indent=2)}
+        Player Profile: {json.dumps(player_profile, indent=2)}
+        
+        Psychological Adaptations:
+        {json.dumps(adaptations, indent=2)}
+        
+        Requirements:
+        1. Set the tone based on the player's psychological profile
+        2. Introduce the mystery in a way that matches the player's cognitive style
+        3. Adjust emotional content based on the player's emotional tendency
+        4. Match the narrative pace to the player's social style
+        """
+        
+        try:
+            narrative = self._llm_generate_story(prompt, {"template": template, "player_profile": player_profile})
+            story_state.narrative_history.append(narrative)
+            return {"narrative": narrative, "story_state": story_state.dict()}
+        except Exception as e:
+            print(f"Error starting new story: {str(e)}")
+            return {"narrative": "The story begins...", "story_state": story_state.dict()}
 
     def generate_story(self, prompt: str, context: dict = None) -> StoryAgentGenerateOutput:
         """
@@ -673,160 +676,42 @@ class StoryAgent(BaseAgent):
             return f"A detective story involving {prompt}. The mystery deepens as clues are discovered."
 
     def _llm_generate_narrative(self, action: str, context: dict, search_results: list[dict], memory_context: str = "") -> str:
+        """Generate narrative progression based on player action and story context."""
+        # Get psychological adaptations
+        profile = context.get("player_profile", {}).get("psychological_profile", create_default_profile())
+        adaptations = profile.get_narrative_adaptations()
+        
+        # Create prompt with psychological adaptations
+        prompt = f"""
+        Generate a narrative response based on the following:
+        
+        Player Action: {action}
+        Current Scene: {context.get('current_scene', 'unknown')}
+        Story Context: {json.dumps(context, indent=2)}
+        
+        Psychological Adaptations:
+        {json.dumps(adaptations, indent=2)}
+        
+        Memory Context:
+        {memory_context}
+        
+        Requirements:
+        1. Adapt the narrative style based on the psychological profile
+        2. Maintain story coherence and pacing
+        3. Include relevant details based on the player's cognitive style
+        4. Adjust emotional content based on the player's emotional tendency
+        5. Match the interaction pace to the player's social style
         """
-        Generate narrative progression using the ModelRouter.
-        Uses a two-step process:
-        1. First, use deepseek-r1t-chimera to analyze the action and plan the narrative (reasoning)
-        2. Then, use mistral-nemo to write the actual narrative (writing)
-        """
-        import json
-
-        # Format context for the prompt
-        context_str = json.dumps(context, indent=2)
-
-        # Format search results
-        search_context = ""
-        if search_results:
-            search_context = "\n\nRelevant information for narrative progression:\n"
-            for i, result in enumerate(search_results[:3], 1):
-                if result.get("snippet"):
-                    search_context += f"{i}. {result['snippet']}\n"
-
-        # Add memory context if available
-        if memory_context:
-            search_context += memory_context
-
-        # Determine player role from context
-        player_role = context.get("player_role", "detective")
-
-        # STEP 1: Use deepseek-r1t-chimera for action analysis and narrative planning
-        planning_system_prompt = (
-            "You are an expert narrative analyst and planner. "
-            "Your task is to analyze the player's action and plan the next part of the narrative. "
-            f"The player is a {player_role.upper()} in this mystery story. "
-            "Consider the following in your analysis:\n"
-            "1. What is the player trying to accomplish with this action?\n"
-            "2. What might they discover or learn?\n"
-            "3. How might other characters react?\n"
-            "4. What sensory details would be important to include?\n"
-            "5. What emotional tone should the narrative have?\n"
-            "6. What potential clues or plot developments could emerge?\n"
-            "Be detailed and analytical. This is a planning document, not the final narrative."
-        )
-
-        planning_user_prompt = (
-            f"Analyze this player action and plan the next narrative segment:\n\n"
-            f"Player action: {action}\n\n"
-            f"Current story context:\n{context_str}{search_context}"
-        )
-
-        # Create messages for the planning model
-        planning_messages = [
-            Message(role="system", content=planning_system_prompt),
-            Message(role="user", content=planning_user_prompt)
-        ]
-
+        
+        # Use the model router to select appropriate model
+        model = self.model_router.get_model_for_task("narrative_generation")
+        
         try:
-            # Generate the narrative plan using the reasoning model
-            planning_response = self.model_router.complete(
-                messages=planning_messages,
-                task_type="reasoning",
-                temperature=0.3,  # Lower temperature for planning
-                max_tokens=800
-            )
-
-            # Store the planning response in memory for debugging if tracking is enabled
-            if self.use_mem0 and self.mem0_config.get("track_performance", True):
-                self.update_memory("narrative_planning_response", str(planning_response.content)[:500])
-                self.update_memory("narrative_planning_model", self.model_router.get_model_name_for_task("reasoning"))
-
-            # Extract the narrative plan
-            narrative_plan = planning_response.content
-
-            if not narrative_plan:
-                if self.use_mem0:
-                    self.update_memory("last_error", "Empty narrative planning response from LLM")
-                narrative_plan = f"The player has decided to {action}. This advances the investigation."
-
-            # STEP 2: Use mistral-nemo to write the actual narrative based on the plan
-            # Build system prompt based on player role
-            if player_role == "detective":
-                writing_system_prompt = (
-                    "You are an expert detective fiction writer creating an interactive mystery story. "
-                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
-                    "The player is a DETECTIVE investigating the case. "
-                    "Write in second person perspective ('You notice...', 'You decide...'). "
-                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
-                    "The tone should match the psychological profile of the player."
-                )
-            elif player_role == "suspect":
-                writing_system_prompt = (
-                    "You are an expert mystery writer creating an interactive story. "
-                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
-                    "The player is a SUSPECT in the case, trying to navigate the investigation while hiding or revealing their own involvement. "
-                    "Write in second person perspective ('You notice...', 'You decide...'). "
-                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
-                    "The tone should match the psychological profile of the player."
-                )
-            elif player_role == "witness":
-                writing_system_prompt = (
-                    "You are an expert mystery writer creating an interactive story. "
-                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
-                    "The player is a WITNESS to the crime, with their own perspective and potentially crucial information. "
-                    "Write in second person perspective ('You notice...', 'You decide...'). "
-                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
-                    "The tone should match the psychological profile of the player."
-                )
-            else:
-                writing_system_prompt = (
-                    "You are an expert mystery writer creating an interactive story. "
-                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
-                    f"The player is a {player_role.upper()} in the mystery. "
-                    "Write in second person perspective ('You notice...', 'You decide...'). "
-                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
-                    "The tone should match the psychological profile of the player."
-                )
-
-            writing_user_prompt = (
-                f"The player has decided to: {action}\n\n"
-                f"Based on this narrative plan, write the next part of the story (2-3 paragraphs):\n\n{narrative_plan}"
-            )
-
-            # Create messages for the writing model
-            writing_messages = [
-                Message(role="system", content=writing_system_prompt),
-                Message(role="user", content=writing_user_prompt)
-            ]
-
-            # Generate the narrative using the writing model
-            writing_response = self.model_router.complete(
-                messages=writing_messages,
-                task_type="writing",
-                temperature=0.7,  # Higher temperature for creative writing
-                max_tokens=500
-            )
-
-            # Store the writing response in memory for debugging if tracking is enabled
-            if self.use_mem0 and self.mem0_config.get("track_performance", True):
-                self.update_memory("narrative_writing_response", str(writing_response.content)[:500])
-                self.update_memory("narrative_writing_model", self.model_router.get_model_name_for_task("writing"))
-
-            # Extract the generated narrative
-            narrative = writing_response.content
-
-            if not narrative:
-                if self.use_mem0:
-                    self.update_memory("last_error", "Empty narrative writing response from LLM")
-                return f"You decided to {action}. The investigation continues as you search for more clues."
-
-            return narrative
-
+            response = model.generate(prompt)
+            return response.strip()
         except Exception as e:
-            # Log the error and return a simple narrative
-            error_msg = f"ModelRouter narrative error: {str(e)}"
-            if self.use_mem0:
-                self.update_memory("last_error", error_msg)
-            return f"You decided to {action}. As you proceed with your investigation, you feel you're getting closer to the truth."
+            print(f"Error generating narrative: {str(e)}")
+            return "The story continues..."
 
     def _extract_potential_clue(self, action: str, narrative: str) -> Optional[str]:
         """
@@ -1072,3 +957,124 @@ class StoryAgentTest(unittest.TestCase):
             # Try to retrieve the cleared memory (should return None)
             retrieved_value = test_agent.get_memory("test_key")
             self.assertIsNone(retrieved_value)
+
+    def test_psychological_profile_integration(self):
+        """Test that psychological profile is properly integrated into narrative generation."""
+        # Create a test profile with specific traits
+        profile = PsychologicalProfile(
+            cognitive_style=CognitiveStyle.ANALYTICAL,
+            emotional_tendency=EmotionalTendency.RESERVED,
+            social_style=SocialStyle.DIRECT,
+            traits={
+                "curiosity": PsychologicalTrait(
+                    name="curiosity",
+                    intensity=TraitIntensity.HIGH,
+                    description="Strong desire to explore and discover",
+                    narrative_impact={
+                        "clue_presentation": "detailed",
+                        "mystery_pacing": "methodical"
+                    },
+                    dialogue_impact={
+                        "question_style": "thorough",
+                        "interaction_approach": "investigative"
+                    }
+                )
+            }
+        )
+
+        # Create test input
+        input_data = {
+            "action": "examine the crime scene",
+            "story_state": {
+                "current_scene": "crime_scene",
+                "narrative_history": [],
+                "discovered_clues": []
+            },
+            "player_profile": {
+                "psychological_profile": profile.dict(),
+                "role": "detective"
+            }
+        }
+
+        # Process the input
+        result = self.agent.process(input_data)
+
+        # Verify the result contains narrative and updated story state
+        self.assertIn("narrative", result)
+        self.assertIn("story_state", result)
+        
+        # Verify the narrative reflects psychological adaptations
+        narrative = result["narrative"]
+        self.assertIn("examine", narrative.lower())
+        self.assertIn("crime scene", narrative.lower())
+
+    def test_default_profile_creation(self):
+        """Test that default profile is created when none is provided."""
+        input_data = {
+            "action": "look around",
+            "story_state": {
+                "current_scene": "room",
+                "narrative_history": [],
+                "discovered_clues": []
+            },
+            "player_profile": {
+                "role": "detective"
+            }
+        }
+
+        result = self.agent.process(input_data)
+        self.assertIn("narrative", result)
+        self.assertIn("story_state", result)
+
+    def test_profile_adaptations(self):
+        """Test that different psychological profiles result in different narrative styles."""
+        # Create two different profiles
+        analytical_profile = PsychologicalProfile(
+            cognitive_style=CognitiveStyle.ANALYTICAL,
+            emotional_tendency=EmotionalTendency.RESERVED,
+            social_style=SocialStyle.DIRECT
+        )
+
+        intuitive_profile = PsychologicalProfile(
+            cognitive_style=CognitiveStyle.INTUITIVE,
+            emotional_tendency=EmotionalTendency.EXPRESSIVE,
+            social_style=SocialStyle.INDIRECT
+        )
+
+        # Test with analytical profile
+        analytical_input = {
+            "action": "investigate the room",
+            "story_state": {
+                "current_scene": "room",
+                "narrative_history": [],
+                "discovered_clues": []
+            },
+            "player_profile": {
+                "psychological_profile": analytical_profile.dict(),
+                "role": "detective"
+            }
+        }
+
+        # Test with intuitive profile
+        intuitive_input = {
+            "action": "investigate the room",
+            "story_state": {
+                "current_scene": "room",
+                "narrative_history": [],
+                "discovered_clues": []
+            },
+            "player_profile": {
+                "psychological_profile": intuitive_profile.dict(),
+                "role": "detective"
+            }
+        }
+
+        # Get results for both profiles
+        analytical_result = self.agent.process(analytical_input)
+        intuitive_result = self.agent.process(intuitive_input)
+
+        # Verify that the narratives are different
+        self.assertNotEqual(
+            analytical_result["narrative"],
+            intuitive_result["narrative"]
+        )

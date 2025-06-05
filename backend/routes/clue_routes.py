@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from uuid import UUID
-from services.clue_service import ClueService
+from backend.services.clue_service import ClueService
 from supabase import create_client, Client
 import os
 
