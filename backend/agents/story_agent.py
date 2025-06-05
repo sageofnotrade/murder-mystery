@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 # Import PydanticAI components
 from pydantic_ai import Agent as PydanticAgent, RunContext, ModelRetry
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.messages import Message
+from pydantic_ai.messages import ModelMessage
 
 # --- Pydantic Models ---
 
@@ -572,8 +572,8 @@ class StoryAgent(BaseAgent):
 
         # Create messages for the planning model
         planning_messages = [
-            Message(role="system", content=planning_system_prompt),
-            Message(role="user", content=planning_user_prompt)
+            ModelMessage(role="system", content=planning_system_prompt),
+            ModelMessage(role="user", content=planning_user_prompt)
         ]
 
         try:
@@ -641,8 +641,8 @@ class StoryAgent(BaseAgent):
 
             # Create messages for the writing model
             writing_messages = [
-                Message(role="system", content=writing_system_prompt),
-                Message(role="user", content=writing_user_prompt)
+                ModelMessage(role="system", content=writing_system_prompt),
+                ModelMessage(role="user", content=writing_user_prompt)
             ]
 
             # Generate the story using the writing model
@@ -676,39 +676,170 @@ class StoryAgent(BaseAgent):
             return f"A detective story involving {prompt}. The mystery deepens as clues are discovered."
 
     def _llm_generate_narrative(self, action: str, context: dict, search_results: list[dict], memory_context: str = "") -> str:
-        """Generate narrative progression based on player action and story context."""
-        # Get psychological adaptations
+        """
+        Generate narrative progression using the ModelRouter.
+        Integrates psychological adaptations from the player's profile into both the planning and writing steps.
+        Uses a two-step process:
+        1. First, use deepseek-r1t-chimera to analyze the action and plan the narrative (reasoning)
+        2. Then, use mistral-nemo to write the actual narrative (writing)
+        # Reason: This ensures the narrative is tailored to the player's psychological profile at every stage.
+        """
+        import json
+
+        # Extract psychological adaptations from the player's profile
         profile = context.get("player_profile", {}).get("psychological_profile", create_default_profile())
         adaptations = profile.get_narrative_adaptations()
-        
-        # Create prompt with psychological adaptations
-        prompt = f"""
-        Generate a narrative response based on the following:
-        
-        Player Action: {action}
-        Current Scene: {context.get('current_scene', 'unknown')}
-        Story Context: {json.dumps(context, indent=2)}
-        
-        Psychological Adaptations:
-        {json.dumps(adaptations, indent=2)}
-        
-        Memory Context:
-        {memory_context}
-        
-        Requirements:
-        1. Adapt the narrative style based on the psychological profile
-        2. Maintain story coherence and pacing
-        3. Include relevant details based on the player's cognitive style
-        4. Adjust emotional content based on the player's emotional tendency
-        5. Match the interaction pace to the player's social style
-        """
-        
-        # Use the model router to select appropriate model
-        model = self.model_router.get_model_for_task("narrative_generation")
-        
+
+        # Format context for the prompt
+        context_str = json.dumps(context, indent=2)
+
+        # Format search results
+        search_context = ""
+        if search_results:
+            search_context = "\n\nRelevant information for narrative progression:\n"
+            for i, result in enumerate(search_results[:3], 1):
+                if result.get("snippet"):
+                    search_context += f"{i}. {result['snippet']}\n"
+
+        # Add memory context if available
+        if memory_context:
+            search_context += memory_context
+
+        # Determine player role from context
+        player_role = context.get("player_role", "detective")
+
+        # STEP 1: Use deepseek-r1t-chimera for action analysis and narrative planning
+        planning_system_prompt = (
+            "You are an expert narrative analyst and planner. "
+            "Your task is to analyze the player's action and plan the next part of the narrative. "
+            f"The player is a {player_role.upper()} in this mystery story. "
+            "Consider the following in your analysis:\n"
+            "1. What is the player trying to accomplish with this action?\n"
+            "2. What might they discover or learn?\n"
+            "3. How might other characters react?\n"
+            "4. What sensory details would be important to include?\n"
+            "5. What emotional tone should the narrative have?\n"
+            "6. What potential clues or plot developments could emerge?\n"
+            "Be detailed and analytical. This is a planning document, not the final narrative.\n"
+            "\nPsychological Adaptations (for planning):\n"
+            f"{json.dumps(adaptations, indent=2)}"
+        )
+
+        planning_user_prompt = (
+            f"Analyze this player action and plan the next narrative segment:\n\n"
+            f"Player action: {action}\n\n"
+            f"Current story context:\n{context_str}{search_context}"
+        )
+
+        # Create messages for the planning model
+        planning_messages = [
+            ModelMessage(role="system", content=planning_system_prompt),
+            ModelMessage(role="user", content=planning_user_prompt)
+        ]
+
         try:
-            response = model.generate(prompt)
-            return response.strip()
+            # Generate the narrative plan using the reasoning model
+            planning_response = self.model_router.complete(
+                messages=planning_messages,
+                task_type="reasoning",
+                temperature=0.3,  # Lower temperature for planning
+                max_tokens=800
+            )
+
+            # Store the planning response in memory for debugging if tracking is enabled
+            if self.use_mem0 and self.mem0_config.get("track_performance", True):
+                self.update_memory("narrative_planning_response", str(planning_response.content)[:500])
+                self.update_memory("narrative_planning_model", self.model_router.get_model_name_for_task("reasoning"))
+
+            # Extract the narrative plan
+            narrative_plan = planning_response.content
+
+            if not narrative_plan:
+                if self.use_mem0:
+                    self.update_memory("last_error", "Empty narrative planning response from LLM")
+                narrative_plan = f"The player has decided to {action}. This advances the investigation."
+
+            # STEP 2: Use mistral-nemo to write the actual narrative based on the plan
+            # Build system prompt based on player role
+            if player_role == "detective":
+                writing_system_prompt = (
+                    "You are an expert detective fiction writer creating an interactive mystery story. "
+                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
+                    "The player is a DETECTIVE investigating the case. "
+                    "Write in second person perspective ('You notice...', 'You decide...'). "
+                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
+                    "The tone should match the psychological profile of the player.\n"
+                    "\nPsychological Adaptations (for writing):\n"
+                    f"{json.dumps(adaptations, indent=2)}"
+                )
+            elif player_role == "suspect":
+                writing_system_prompt = (
+                    "You are an expert mystery writer creating an interactive story. "
+                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
+                    "The player is a SUSPECT in the case, trying to navigate the investigation while hiding or revealing their own involvement. "
+                    "Write in second person perspective ('You notice...', 'You decide...'). "
+                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
+                    "The tone should match the psychological profile of the player.\n"
+                    "\nPsychological Adaptations (for writing):\n"
+                    f"{json.dumps(adaptations, indent=2)}"
+                )
+            elif player_role == "witness":
+                writing_system_prompt = (
+                    "You are an expert mystery writer creating an interactive story. "
+                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
+                    "The player is a WITNESS to the crime, with their own perspective and potentially crucial information. "
+                    "Write in second person perspective ('You notice...', 'You decide...'). "
+                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
+                    "The tone should match the psychological profile of the player.\n"
+                    "\nPsychological Adaptations (for writing):\n"
+                    f"{json.dumps(adaptations, indent=2)}"
+                )
+            else:
+                writing_system_prompt = (
+                    "You are an expert mystery writer creating an interactive story. "
+                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
+                    f"The player is a {player_role.upper()} in the mystery. "
+                    "Write in second person perspective ('You notice...', 'You decide...'). "
+                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
+                    "The tone should match the psychological profile of the player.\n"
+                    "\nPsychological Adaptations (for writing):\n"
+                    f"{json.dumps(adaptations, indent=2)}"
+                )
+
+            writing_user_prompt = (
+                f"The player has decided to: {action}\n\n"
+                f"Based on this narrative plan, write the next part of the story (2-3 paragraphs):\n\n{narrative_plan}"
+            )
+
+            # Create messages for the writing model
+            writing_messages = [
+                ModelMessage(role="system", content=writing_system_prompt),
+                ModelMessage(role="user", content=writing_user_prompt)
+            ]
+
+            # Generate the narrative using the writing model
+            writing_response = self.model_router.complete(
+                messages=writing_messages,
+                task_type="writing",
+                temperature=0.7,  # Higher temperature for creative writing
+                max_tokens=500
+            )
+
+            # Store the writing response in memory for debugging if tracking is enabled
+            if self.use_mem0 and self.mem0_config.get("track_performance", True):
+                self.update_memory("narrative_writing_response", str(writing_response.content)[:500])
+                self.update_memory("narrative_writing_model", self.model_router.get_model_name_for_task("writing"))
+
+            # Extract the generated narrative
+            narrative = writing_response.content
+
+            if not narrative:
+                if self.use_mem0:
+                    self.update_memory("last_error", "Empty narrative writing response from LLM")
+                return f"You decided to {action}. The investigation continues as you search for more clues."
+
+            return narrative
+
         except Exception as e:
             print(f"Error generating narrative: {str(e)}")
             return "The story continues..."
@@ -749,8 +880,8 @@ class StoryAgent(BaseAgent):
 
             # Create messages for the reasoning model
             messages = [
-                Message(role="system", content=system_prompt),
-                Message(role="user", content=user_prompt)
+                ModelMessage(role="system", content=system_prompt),
+                ModelMessage(role="user", content=user_prompt)
             ]
 
             # Use the reasoning model to extract clues

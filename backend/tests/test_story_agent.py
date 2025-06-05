@@ -7,6 +7,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
 import os
 import json
+from flask_jwt_extended import JWTManager, create_access_token
 from backend.agents.story_agent import (
     StoryAgent, 
     StoryState, 

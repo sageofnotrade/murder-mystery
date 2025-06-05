@@ -9,8 +9,12 @@ import os
 from dotenv import load_dotenv
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
-from pydantic_ai.messages import Message
+from pydantic_ai.messages import ModelMessage
 from typing import List, Dict, Any, Optional
+import hashlib
+import json
+import redis
+import logging
 
 class ModelRouter:
     """
@@ -45,6 +49,11 @@ class ModelRouter:
         
         # Default model (used when no specific task type is provided)
         self.default_model = self.reasoning_model
+        
+        # Redis setup (assumes REDIS_URL in env)
+        REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        self.redis_client = redis.from_url(REDIS_URL)
+        self.logger = logging.getLogger(__name__)
     
     def get_model_for_task(self, task_type: str) -> OpenAIModel:
         """
@@ -64,9 +73,10 @@ class ModelRouter:
             # Default to reasoning model for unknown tasks
             return self.default_model
     
-    def complete(self, messages: List[Message], task_type: str, **kwargs) -> Any:
+    def complete(self, messages: List[ModelMessage], task_type: str, **kwargs) -> Any:
         """
         Complete a prompt using the appropriate model for the task.
+        Adds Redis caching for LLM responses.
         
         Args:
             messages (list): List of Message objects
@@ -77,7 +87,38 @@ class ModelRouter:
             Response: The model response
         """
         model = self.get_model_for_task(task_type)
-        return model.complete(messages=messages, **kwargs)
+        # --- Redis Caching Logic ---
+        # Try to get user_id from kwargs or agent context
+        user_id = kwargs.get('user_id')
+        if not user_id:
+            # Try to get from agent if passed
+            agent = kwargs.get('agent')
+            if agent and hasattr(agent, 'user_id'):
+                user_id = agent.user_id
+        # Serialize messages for hashing
+        msg_str = json.dumps([m.model_dump() if hasattr(m, 'model_dump') else m.__dict__ for m in messages], sort_keys=True)
+        key_base = f"llm:{user_id or ''}:{task_type}:{msg_str}"
+        cache_key = hashlib.sha256(key_base.encode('utf-8')).hexdigest()
+        redis_key = f"llm_cache:{cache_key}"
+        # Check cache
+        cached = self.redis_client.get(redis_key)
+        if cached:
+            self.logger.info(f"LLM cache hit for key {redis_key}")
+            try:
+                return json.loads(cached)
+            except Exception:
+                self.logger.warning(f"Corrupted cache for key {redis_key}, ignoring.")
+        else:
+            self.logger.info(f"LLM cache miss for key {redis_key}")
+        # Call model and cache result
+        result = model.complete(messages=messages, **kwargs)
+        # Try to serialize result for cache
+        try:
+            result_json = result.model_dump() if hasattr(result, 'model_dump') else result.__dict__
+            self.redis_client.set(redis_key, json.dumps(result_json), ex=3600)  # 1 hour expiry
+        except Exception as e:
+            self.logger.warning(f"Failed to cache LLM result: {e}")
+        return result
     
     def get_model_name_for_task(self, task_type: str) -> str:
         """

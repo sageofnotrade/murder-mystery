@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 # Import PydanticAI components
 from pydantic_ai import Agent as PydanticAgent, RunContext, ModelRetry
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.messages import Message
+from pydantic_ai.messages import ModelMessage
 
 # --- Pydantic Models ---
 
@@ -313,8 +313,6 @@ class SuspectAgent(BaseAgent):
             SuspectProfile: The generated suspect profile.
         """
         import json
-        from pydantic_ai.messages import Message
-
         # Format search results for the prompt
         search_context = ""
         if search_results:
@@ -358,8 +356,8 @@ class SuspectAgent(BaseAgent):
         )
 
         planning_messages = [
-            Message(role="system", content=planning_system_prompt),
-            Message(role="user", content=planning_user_prompt)
+            ModelMessage(role="system", content=planning_system_prompt),
+            ModelMessage(role="user", content=planning_user_prompt)
         ]
 
         try:
@@ -402,8 +400,8 @@ class SuspectAgent(BaseAgent):
             )
 
             writing_messages = [
-                Message(role="system", content=writing_system_prompt),
-                Message(role="user", content=writing_user_prompt)
+                ModelMessage(role="system", content=writing_system_prompt),
+                ModelMessage(role="user", content=writing_user_prompt)
             ]
 
             # Generate the profile using the writing model

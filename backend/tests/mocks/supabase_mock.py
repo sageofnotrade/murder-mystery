@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 import uuid
+from types import SimpleNamespace
 
 class MockSupabaseClient:
     def __init__(self):
@@ -20,6 +21,7 @@ class MockTable:
         self._where_conditions = []
         self._order_by = None
         self._limit = None
+        self._single = False  # Track if .single() was called
         
     def select(self, *columns: str) -> 'MockTable':
         self._select_columns = columns
@@ -62,15 +64,22 @@ class MockTable:
         self._limit = count
         return self
         
-    def execute(self) -> Dict[str, Any]:
+    def single(self) -> 'MockTable':
+        self._single = True
+        return self
+        
+    def execute(self) -> Any:
         # Apply filters
+        print(f'DEBUG: execute() called on table {self.name}')
+        print(f'  _where_conditions: {self._where_conditions}')
         filtered_data = self.data
         if self._where_conditions:
             filtered_data = [
                 item for item in filtered_data
-                if all(item.get(k) == v for k, v in self._where_conditions)
+                if all(str(item.get(k)) == str(v) for k, v in self._where_conditions)
             ]
-            
+        print(f'  filtered_data after filtering: {filtered_data}')
+        
         # Apply ordering
         if self._order_by:
             column, desc = self._order_by
@@ -84,32 +93,58 @@ class MockTable:
             filtered_data = filtered_data[:self._limit]
             
         # Apply column selection
-        if self._select_columns:
+        if self._select_columns and '*' not in self._select_columns:
             filtered_data = [
                 {k: item[k] for k in self._select_columns if k in item}
                 for item in filtered_data
             ]
-            
-        return {'data': filtered_data}
+        if self._single:
+            data = filtered_data[0] if filtered_data else None
+            print(f'  Returning single: {data}')
+            result = SimpleNamespace(data=data)
+        else:
+            print(f'  Returning list: {filtered_data}')
+            result = SimpleNamespace(data=filtered_data)
+        # Reset filters after execution
+        self._where_conditions = []
+        self._select_columns = None
+        self._order_by = None
+        self._limit = None
+        self._single = False
+        return result
 
 class MockAuth:
     def __init__(self):
         self.current_user = None
-        
-    def sign_in_with_password(self, credentials: Dict[str, str]) -> Dict[str, Any]:
+
+    class _MockResponse:
+        def __init__(self, user, session=None):
+            self.user = user
+            self.session = session
+
+    def sign_in_with_password(self, credentials: Dict[str, str]):
         # Mock successful sign in
         self.current_user = {
             'id': str(uuid.uuid4()),
             'email': credentials.get('email'),
             'role': 'authenticated'
         }
-        return {
-            'user': self.current_user,
-            'session': {
+        return self._MockResponse(
+            user=self.current_user,
+            session={
                 'access_token': 'mock-token',
                 'refresh_token': 'mock-refresh-token'
             }
+        )
+
+    def sign_up(self, credentials: Dict[str, str]):
+        # Mock successful sign up
+        user = {
+            'id': str(uuid.uuid4()),
+            'email': credentials.get('email'),
+            'role': 'authenticated'
         }
-        
+        return self._MockResponse(user=user)
+
     def sign_out(self) -> None:
         self.current_user = None 

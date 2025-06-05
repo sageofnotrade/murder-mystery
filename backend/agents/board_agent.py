@@ -23,7 +23,7 @@ from pydantic_ai import Agent as PydanticAgent, RunContext, ModelRetry
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.mistral import MistralModel
-from pydantic_ai.messages import Message
+from pydantic_ai.messages import ModelMessage
 
 # --- Pydantic Models ---
 
@@ -537,8 +537,8 @@ class BoardAgent(BaseAgent):
 
             # Create messages for the reasoning model
             planning_messages = [
-                Message(role="system", content=planning_system_prompt),
-                Message(role="user", content=planning_user_prompt)
+                ModelMessage(role="system", content=planning_system_prompt),
+                ModelMessage(role="user", content=planning_user_prompt)
             ]
 
             # Generate the board update plan using the reasoning model
@@ -574,8 +574,8 @@ class BoardAgent(BaseAgent):
 
             # Create messages for the writing model
             writing_messages = [
-                Message(role="system", content=writing_system_prompt),
-                Message(role="user", content=writing_user_prompt)
+                ModelMessage(role="system", content=writing_system_prompt),
+                ModelMessage(role="user", content=writing_user_prompt)
             ]
 
             # Generate the board update using the writing model

@@ -2,11 +2,16 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock
 
-from app import app
-from models.template_models import MysteryTemplate, Suspect, Clue
+from backend.app import create_app
+
+@pytest.fixture(scope="module")
+def app():
+    return create_app({'TESTING': True})
+
+from backend.agents.models.template_models import MysteryTemplate, Suspect, Clue
 
 @pytest.fixture
-def client():
+def client(app):
     """Create a test client."""
     app.config['TESTING'] = True
     with app.test_client() as client:

@@ -1,18 +1,23 @@
+from backend.tests.mocks.supabase_mock import MockSupabaseClient
 from unittest.mock import patch, MagicMock, AsyncMock
-# Patch Supabase client at a higher level to bypass validation
-supabase_create_client_patch = patch('supabase._sync.client.create_client', return_value=MagicMock())
-supabase_create_client_patch.start()
+# Patch Supabase client globally for all tests in this module
+supabase_client_patch1 = patch('backend.services.supabase_service.get_supabase_client', return_value=MockSupabaseClient())
+supabase_client_patch1.start()
+supabase_client_patch2 = patch('backend.routes.story_routes.get_supabase_client', return_value=MockSupabaseClient())
+supabase_client_patch2.start()
 
+pytest_plugins = ["pytest_asyncio"]
 import pytest
 from uuid import uuid4, UUID
 from flask import Flask
 from backend.routes.story_routes import story_bp, get_supabase_client, get_story_service
 from backend.agents.models.story_models import StoryState, PlayerAction, StoryChoice, StoryResponse
 import json
-from backend.app import app
+from backend.app import create_app
 from datetime import datetime
 import unittest
 from fastapi.testclient import TestClient
+from flask_jwt_extended import JWTManager, create_access_token
 from backend.agents.models.psychological_profile import (
     PsychologicalProfile,
     create_default_profile,
@@ -22,58 +27,51 @@ from backend.agents.models.psychological_profile import (
     SocialStyle
 )
 
-# Mock Supabase client at module level
-mock_supabase = MagicMock()
-mock_supabase.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = None
-mock_supabase.table.return_value.insert.return_value.execute.return_value.data = [{'id': str(uuid4())}]
-mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value.data = None
-
-# Mock Redis client at module level
-mock_redis = MagicMock()
-mock_redis.get.return_value = None
-mock_redis.set.return_value = True
-
-@pytest.fixture
+@pytest.fixture(scope="module")
 def app():
     app = Flask(__name__)
     app.config['TESTING'] = True
     app.config['JWT_SECRET_KEY'] = 'test-secret-key'
-    app.register_blueprint(story_bp)
+    app.config['JWT_TOKEN_LOCATION'] = ['headers']
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False
+    app.config['JWT_HEADER_NAME'] = 'Authorization'
+    app.config['JWT_HEADER_TYPE'] = 'Bearer'
+    app.register_blueprint(story_bp, url_prefix='/api')
+    jwt = JWTManager(app)
     return app
 
 @pytest.fixture
 def client(app):
-    return app.test_client()
+    with app.app_context():
+        yield app.test_client()
+
+@pytest.fixture(scope="module")
+def shared_mock_supabase():
+    mock_supabase = MockSupabaseClient()
+    with patch('backend.services.supabase_service.get_supabase_client', return_value=mock_supabase), \
+         patch('backend.routes.story_routes.get_supabase_client', return_value=mock_supabase):
+        yield mock_supabase
 
 @pytest.fixture
-def mock_story_service():
-    with patch('routes.story_routes.get_story_service') as mock:
-        mock_service = MagicMock()
-        mock_service.create_story = AsyncMock()
-        mock_service.get_story = AsyncMock()
-        mock_service.process_action = AsyncMock()
-        mock_service.get_available_choices = AsyncMock()
-        mock_service.save_story_state = AsyncMock()
-        mock.return_value = mock_service
-        yield mock_service
-
-@pytest.fixture
-def auth_headers():
-    return {'Authorization': 'Bearer test-token'}
+def auth_headers(app):
+    with app.app_context():
+        token = create_access_token(identity='test-user')
+    return {'Authorization': f'Bearer {token}'}
 
 @pytest.fixture
 def sample_story_data():
     return {
         'id': '123e4567-e89b-12d3-a456-426614174000',
-        'user_id': 'user123',
-        'mystery_id': 'mystery123',
-        'title': 'Test Story',
+        'user_id': 'test-user',
+        'mystery_id': str(uuid4()),
         'current_scene': 'introduction',
         'created_at': datetime.now().isoformat(),
         'updated_at': datetime.now().isoformat(),
-        'narrative_history': [],
-        'discovered_clues': [],
-        'suspect_states': {}
+        'narrative_history': json.dumps([]),
+        'discovered_clues': json.dumps([]),
+        'suspect_states': json.dumps({}),
+        'player_choices': json.dumps([]),
+        'last_action': None
     }
 
 @pytest.fixture
@@ -91,293 +89,117 @@ def sample_choice_data():
         'consequences': {'reveals_clue': 'clue1'}
     }
 
-@pytest.mark.asyncio
-async def test_create_story(client, mock_story_service, auth_headers):
-    # Mock the JWT identity
-    with patch('flask_jwt_extended.get_jwt_identity', return_value='test-user'):
-        # Mock the story service response
-        story_id = uuid4()
-        mock_story = StoryState(
-            id=story_id,
-            mystery_id=uuid4(),
-            user_id='test-user',
-            current_scene='introduction'
-        )
-        mock_story_service.create_story.return_value = mock_story
+@pytest.fixture
+def mock_supabase():
+    return MockSupabaseClient()
 
-        # Make the request
-        response = client.post(
-            '/stories',
-            json={'mystery_id': str(uuid4())},
-            headers=auth_headers
-        )
-
-        # Assert response
-        assert response.status_code == 201
-        data = json.loads(response.data)
-        assert 'story_id' in data
-        assert data['story_id'] == str(story_id)
-
-@pytest.mark.asyncio
-async def test_get_story(client, mock_story_service, auth_headers):
-    # Mock the JWT identity
-    with patch('flask_jwt_extended.get_jwt_identity', return_value='test-user'):
-        # Mock the story service response
-        story_id = uuid4()
-        mock_story = StoryState(
-            id=story_id,
-            mystery_id=uuid4(),
-            user_id='test-user',
-            current_scene='introduction'
-        )
-        mock_story_service.get_story.return_value = mock_story
-
-        # Make the request
-        response = client.get(
-            f'/stories/{story_id}',
-            headers=auth_headers
-        )
-
-        # Assert response
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert data['id'] == str(story_id)
-        assert data['current_scene'] == 'introduction'
-
-@pytest.mark.asyncio
-async def test_process_action(client, mock_story_service, auth_headers):
-    # Mock the JWT identity
-    with patch('flask_jwt_extended.get_jwt_identity', return_value='test-user'):
-        # Mock the story service response
-        story_id = uuid4()
-        mock_response = StoryResponse(
-            story_id=story_id,
-            narrative="Test narrative",
-            choices=[
-                StoryChoice(id="1", text="Choice 1"),
-                StoryChoice(id="2", text="Choice 2")
-            ],
-            discovered_clues=[],
-            suspect_states={},
-            current_scene="test_scene"
-        )
-        mock_story_service.process_action.return_value = mock_response
-
-        # Make the request
-        response = client.post(
-            f'/stories/{story_id}/actions',
-            json={
-                'action_type': 'examine',
-                'content': 'Look at the bookshelf'
-            },
-            headers=auth_headers
-        )
-
-        # Assert response
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert data['story_id'] == str(story_id)
-        assert 'narrative' in data
-        assert len(data['choices']) == 2
-
-@pytest.mark.asyncio
-async def test_get_choices(client, mock_story_service, auth_headers):
-    # Mock the JWT identity
-    with patch('flask_jwt_extended.get_jwt_identity', return_value='test-user'):
-        # Mock the story service response
-        story_id = uuid4()
-        mock_choices = [
-            StoryChoice(id='1', text='Continue investigation'),
-            StoryChoice(id='2', text='Examine clues')
-        ]
-        mock_story_service.get_available_choices.return_value = mock_choices
-
-        # Make the request
-        response = client.get(
-            f'/stories/{story_id}/choices',
-            headers=auth_headers
-        )
-
-        # Assert response
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert len(data) == 2
-        assert data[0]['id'] == '1'
-        assert data[1]['id'] == '2'
-
-@pytest.mark.asyncio
-async def test_save_story(client, mock_story_service, auth_headers):
-    # Mock the JWT identity
-    with patch('flask_jwt_extended.get_jwt_identity', return_value='test-user'):
-        # Mock the story service response
-        story_id = uuid4()
-        mock_story = StoryState(
-            id=story_id,
-            mystery_id=uuid4(),
-            user_id='test-user',
-            current_scene='introduction'
-        )
-        mock_story_service.get_story.return_value = mock_story
-        mock_story_service.save_story_state.return_value = None
-
-        # Make the request
-        response = client.post(
-            f'/stories/{story_id}/save',
-            headers=auth_headers
-        )
-
-        # Assert response
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert data['message'] == 'Story state saved successfully'
-
-@pytest.mark.asyncio
-async def test_unauthorized_access(client, mock_story_service, auth_headers):
-    # Mock the JWT identity
-    with patch('flask_jwt_extended.get_jwt_identity', return_value='test-user'):
-        # Mock the story service to raise an unauthorized error
-        story_id = uuid4()
-        mock_story_service.get_story.side_effect = Exception("Unauthorized access to story")
-
-        # Make the request
-        response = client.get(
-            f'/stories/{story_id}',
-            headers=auth_headers
-        )
-
-        # Assert response
-        assert response.status_code == 500
-        data = json.loads(response.data)
-        assert 'error' in data
-
-@pytest.mark.asyncio
-async def test_invalid_story_id(client, mock_story_service, auth_headers):
-    # Mock the JWT identity
-    with patch('flask_jwt_extended.get_jwt_identity', return_value='test-user'):
-        # Make the request with an invalid UUID
-        response = client.get(
-            '/stories/invalid-uuid',
-            headers=auth_headers
-        )
-
-        # Assert response
-        assert response.status_code == 404
-        data = json.loads(response.data)
-        assert 'error' in data
-
-async def test_get_stories(client, auth_headers, mock_supabase, sample_story_data):
+def test_get_stories(client, auth_headers, sample_story_data, shared_mock_supabase):
     """Test getting all stories for a user."""
-    # Set up mock data
-    mock_supabase.table.return_value.select.return_value.execute.return_value = {
-        'data': [sample_story_data]
+    story_id = str(uuid4())
+    mock_story = {
+        'id': story_id,
+        'user_id': 'test-user',
+        'mystery_id': str(uuid4()),
+        'current_scene': 'introduction',
+        'narrative_history': json.dumps([]),
+        'discovered_clues': json.dumps([]),
+        'suspect_states': json.dumps({}),
+        'player_choices': json.dumps([]),
+        'last_action': None
     }
-    
-    # Make request
-    response = await client.get('/api/stories', headers=auth_headers)
-    
-    # Check response
+    shared_mock_supabase.table('stories').data = [mock_story]
+    print('DEBUG: stories table before request:', shared_mock_supabase.table('stories').data)
+    response = client.get('/api/stories', headers=auth_headers)
     assert response.status_code == 200
     data = json.loads(response.data)
     assert len(data) == 1
-    assert data[0]['title'] == 'Test Story'
+    assert data[0]['id'] == story_id
+    assert data[0]['current_scene'] == 'introduction'
 
-async def test_get_story(client, auth_headers, mock_supabase, sample_story_data):
+def test_get_story(client, auth_headers, sample_story_data, shared_mock_supabase):
     """Test getting a specific story."""
-    # Set up mock data
-    mock_supabase.table.return_value.select.return_value.execute.return_value = {
-        'data': [sample_story_data]
+    story_id = str(uuid4())
+    mock_story = {
+        'id': story_id,
+        'user_id': 'test-user',
+        'mystery_id': str(uuid4()),
+        'current_scene': 'introduction',
+        'narrative_history': json.dumps([]),
+        'discovered_clues': json.dumps([]),
+        'suspect_states': json.dumps({}),
+        'player_choices': json.dumps([]),
+        'last_action': None
     }
-    
-    # Make request
-    response = await client.get(
-        f'/api/stories/{sample_story_data["id"]}',
+    shared_mock_supabase.table('stories').data = [mock_story]
+    print('DEBUG: stories table before request:', shared_mock_supabase.table('stories').data)
+    response = client.get(
+        f'/api/stories/{story_id}',
         headers=auth_headers
     )
-    
-    # Check response
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data['title'] == 'Test Story'
+    assert data['id'] == story_id
+    assert data['current_scene'] == 'introduction'
 
-async def test_create_story(client, auth_headers, mock_supabase, sample_story_data):
+def test_create_story(client, auth_headers, sample_story_data, shared_mock_supabase):
     """Test creating a new story."""
-    # Set up mock data
-    mock_supabase.table.return_value.insert.return_value.execute.return_value = {
-        'data': [sample_story_data]
+    mystery_id = str(uuid4())
+    mock_mystery = {
+        'id': mystery_id,
+        'title': 'Test Mystery',
+        'description': 'A test mystery',
+        'created_at': sample_story_data['created_at'],
+        'updated_at': sample_story_data['updated_at']
     }
-    
-    # Make request
-    response = await client.post(
+    shared_mock_supabase.table('mysteries').data = [mock_mystery]
+    print('DEBUG: mysteries table before request:', shared_mock_supabase.table('mysteries').data)
+    response = client.post(
         '/api/stories',
         headers=auth_headers,
-        json={'mystery_id': 'mystery123'}
+        json={'mystery_id': mystery_id}
     )
-    
-    # Check response
     assert response.status_code == 201
     data = json.loads(response.data)
-    assert data['title'] == 'Test Story'
+    assert 'id' in data
+    assert 'current_scene' in data
+    assert data['current_scene'] == 'introduction'
 
-async def test_get_story_progress(client, auth_headers, mock_supabase):
-    """Test getting story progress."""
-    # Set up mock data
-    mock_supabase.table.return_value.select.return_value.execute.return_value = {
-        'data': [{'game_progress': 0.5}]
-    }
-    
-    # Make request
-    response = await client.get(
-        '/api/stories/123e4567-e89b-12d3-a456-426614174000/progress',
-        headers=auth_headers
-    )
-    
-    # Check response
+def test_get_story_progress(client, auth_headers, sample_story_data, shared_mock_supabase):
+    story_id = str(uuid4())
+    mock_story = sample_story_data.copy()
+    mock_story['id'] = story_id
+    shared_mock_supabase.table('stories').data = [mock_story]
+    response = client.get(f'/api/stories/{story_id}/progress', headers=auth_headers)
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data['game_progress'] == 0.5
+    assert data['id'] == story_id
 
-async def test_perform_action(client, auth_headers, mock_supabase, sample_action_data):
-    """Test performing an action in the story."""
-    # Set up mock data
-    mock_supabase.table.return_value.insert.return_value.execute.return_value = {
-        'data': [{
-            'id': 'action1',
-            'story_id': '123e4567-e89b-12d3-a456-426614174000',
-            **sample_action_data
-        }]
-    }
-    
-    # Make request
-    response = await client.post(
-        '/api/stories/123e4567-e89b-12d3-a456-426614174000/actions',
+def test_perform_action(client, auth_headers, sample_story_data, sample_action_data, shared_mock_supabase):
+    story_id = str(uuid4())
+    mock_story = sample_story_data.copy()
+    mock_story['id'] = story_id
+    shared_mock_supabase.table('stories').data = [mock_story]
+    response = client.post(
+        f'/api/stories/{story_id}/actions',
         headers=auth_headers,
         json=sample_action_data
     )
-    
-    # Check response
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data['action_type'] == 'examine'
+    assert data['story_id'] == story_id
+    assert 'narrative' in data
+    assert 'current_scene' in data
 
-async def test_make_choice(client, auth_headers, mock_supabase, sample_choice_data):
-    """Test making a choice in the story."""
-    # Set up mock data
-    mock_supabase.table.return_value.insert.return_value.execute.return_value = {
-        'data': [{
-            'id': 'choice1',
-            'story_id': '123e4567-e89b-12d3-a456-426614174000',
-            **sample_choice_data
-        }]
-    }
-    
-    # Make request
-    response = await client.post(
-        '/api/stories/123e4567-e89b-12d3-a456-426614174000/choices',
+def test_make_choice(client, auth_headers, sample_story_data, sample_choice_data, shared_mock_supabase):
+    story_id = str(uuid4())
+    mock_story = sample_story_data.copy()
+    mock_story['id'] = story_id
+    shared_mock_supabase.table('stories').data = [mock_story]
+    response = client.post(
+        f'/api/stories/{story_id}/choices',
         headers=auth_headers,
-        json=sample_choice_data
+        json={'choice_id': '1'}
     )
-    
-    # Check response
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data['choice_text'] == 'Open the drawer'

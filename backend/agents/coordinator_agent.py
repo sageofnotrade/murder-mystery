@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 # Import PydanticAI components
 from pydantic_ai import Agent as PydanticAgent, RunContext, ModelRetry
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.messages import Message
+from pydantic_ai.messages import ModelMessage
 
 # --- Pydantic Models ---
 
@@ -380,8 +380,8 @@ class CoordinatorAgent(BaseAgent):
 
         # Prepare messages for the model
         messages = [
-            Message(role="system", content=system_prompt),
-            Message(role="user", content=user_prompt)
+            ModelMessage(role="system", content=system_prompt),
+            ModelMessage(role="user", content=user_prompt)
         ]
 
         try:
@@ -598,8 +598,8 @@ class CoordinatorAgent(BaseAgent):
 
         # Prepare messages for the model
         messages = [
-            Message(role="system", content=system_prompt),
-            Message(role="user", content=user_prompt)
+            ModelMessage(role="system", content=system_prompt),
+            ModelMessage(role="user", content=user_prompt)
         ]
 
         try:
@@ -973,8 +973,8 @@ class CoordinatorAgent(BaseAgent):
 
         # Prepare messages for the model
         messages = [
-            Message(role="system", content=system_prompt),
-            Message(role="user", content=user_prompt)
+            ModelMessage(role="system", content=system_prompt),
+            ModelMessage(role="user", content=user_prompt)
         ]
 
         try:

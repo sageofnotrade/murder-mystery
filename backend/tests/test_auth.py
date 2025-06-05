@@ -6,11 +6,15 @@ from pathlib import Path
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app import app
+from backend.app import create_app
+
+@pytest.fixture(scope="module")
+def app():
+    return create_app({'TESTING': True})
 import json
 
 @pytest.fixture
-def client():
+def client(app):
     app.config['TESTING'] = True
     with app.test_client() as client:
         yield client

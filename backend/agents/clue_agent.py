@@ -313,7 +313,7 @@ class ClueAgent(BaseAgent):
         Returns:
             ClueData: The generated clue data.
         """
-        from pydantic_ai.messages import Message
+        from pydantic_ai.messages import ModelMessage
 
         load_dotenv()
 
@@ -352,8 +352,8 @@ class ClueAgent(BaseAgent):
 
             # Prepare messages for the model
             messages = [
-                Message(role="system", content=system_prompt),
-                Message(role="user", content=user_prompt)
+                ModelMessage(role="system", content=system_prompt),
+                ModelMessage(role="user", content=user_prompt)
             ]
 
             # Generate the clue using the reasoning model via ModelRouter
