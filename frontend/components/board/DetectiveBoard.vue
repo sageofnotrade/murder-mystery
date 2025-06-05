@@ -2,29 +2,31 @@
   <div class="detective-board-container">
     <!-- Board controls -->
     <div class="board-controls">
-      <button @click="zoomIn">Zoom In</button>
-      <button @click="zoomOut">Zoom Out</button>
-      <button @click="resetView">Reset View</button>
-      <button @click="undo" :disabled="!canUndo">Undo</button>
-      <button @click="redo" :disabled="!canRedo">Redo</button>
-      <button @click="saveBoard" :disabled="isSaving">Save</button>
-      <button @click="loadBoard" :disabled="isLoading">Load</button>
-      <button @click="resetBoardConfirm">Reset</button>
-      <div class="element-tools">
-        <button @click="addElement('suspect')">Add Suspect</button>
-        <button @click="addElement('clue')">Add Clue</button>
-        <button @click="addElement('location')">Add Location</button>
-        <button @click="addElement('note')">Add Note</button>
-        <button @click="startConnectionMode" :class="{ active: isConnecting }">Connect</button>
-        <select v-model="selectedConnectionType" :disabled="!isConnecting" class="connection-type-select">
-          <option v-for="type in connectionTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
-        </select>
-      </div>
-    </div>
-    <div v-if="isConnecting" class="connection-overlay">
+  <div class="control-group">
+    <button @click="zoomIn">Zoom In</button>
+    <button @click="zoomOut">Zoom Out</button>
+    <button @click="resetView">Reset View</button>
+    <button @click="undo" :disabled="!canUndo">Undo</button>
+    <button @click="redo" :disabled="!canRedo">Redo</button>
+    <button @click="saveBoard" :disabled="isSaving">Save</button>
+    <button @click="loadBoard" :disabled="isLoading">Load</button>
+    <button @click="resetBoardConfirm">Reset</button>
+  </div>
+  <div class="control-group">
+    <button @click="addElement('suspect')">Add Suspect</button>
+    <button @click="addElement('clue')">Add Clue</button>
+    <button @click="addElement('location')">Add Location</button>
+    <button @click="addElement('note')">Add Note</button>
+    <button @click="startConnectionMode" :class="{ active: isConnecting }">Connect</button>
+    <select v-model="selectedConnectionType" :disabled="!isConnecting" class="connection-type-select">
+      <option v-for="type in connectionTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
+    </select>
+  </div>
+</div>
+    <div v-if="isConnecting" class="connection-overlay" :style="{ borderLeft: '5px solid ' + connectionTypeColor }">
       <p>
-        Select two elements to connect as <b>{{ connectionTypeLabel }}</b>.
-        <button @click="cancelConnection">Cancel</button>
+        Click two elements to connect them as <strong>{{ connectionTypeLabel }}</strong>. 
+        <span class="cancel-link" @click="cancelConnection">Cancel</span>
       </p>
     </div>
     <div v-if="isLoading" class="board-loading">Loading...</div>
@@ -88,38 +90,49 @@
         </svg>
         <!-- Board elements -->
         <component
-          v-for="element in elements"
+           v-for="element in elements"
           :key="element.id"
           :is="getElementComponent(element.type)"
           :element="element"
           :style="getElementStyle(element)"
           @mousedown.stop="startDrag($event, element)"
           @click="onElementClick(element)"
+          @delete="boardStore.deleteElement"
         />
       </div>
     </div>
-    <div v-if="selectedElement" class="element-sidebar">
-      <h3>Edit Element</h3>
-      <label>Name:<input v-model="editElement.name" /></label>
-      <label>Type:
-        <select v-model="editElement.type">
-          <option value="suspect">Suspect</option>
-          <option value="clue">Clue</option>
-          <option value="location">Location</option>
-          <option value="note">Note</option>
-        </select>
-      </label>
-      <label>Description:<textarea v-model="editElement.description" rows="2" /></label>
-      <label>Notes:<textarea v-model="editElement.notes" rows="3" /></label>
-      <div class="sidebar-actions">
-        <button @click="saveElementEdit">Save</button>
-        <button @click="closeSidebar">Close</button>
-      </div>
+    <div 
+    v-if="selectedElement" 
+    class="element-sidebar" 
+    :class="`type-${selectedElement.type}`"
+    ref="sidebarRef"
+    :style="{ top: sidebarPosition.top + 'px', left: sidebarPosition.left + 'px' }"
+    @mousedown.stop="startSidebarDrag"
+  >
+
+  <template v-if="selectedElement.type === 'suspect'">
+    <SuspectProfile :suspect="selectedElement" />
+  </template>
+  <template v-else>
+    <h3>Edit Element</h3>
+    <label>Name:<input v-model="editElement.name" /></label>
+   <label>Type:
+       <input :value="capitalize(editElement.type)" disabled />
+    </label>
+    <label>Description:<textarea v-model="editElement.description" rows="2" /></label>
+    <label>Notes:<textarea v-model="editElement.notes" rows="3" /></label>
+    <div class="sidebar-actions">
+      <button @click="saveElementEdit">Save</button>
+      <button @click="closeSidebar">Close</button>
     </div>
-  </div>
+  </template>
+</div>
+</div> 
 </template>
 
+
 <script setup>
+import SuspectProfile from './SuspectProfile.vue';
 import { ref, computed, onMounted, nextTick, reactive, watch } from 'vue';
 import { useBoardStore } from '@/stores/boardStore';
 import SuspectElement from './SuspectElement.vue';
@@ -131,7 +144,7 @@ import ElementConnection from './ElementConnection.vue';
 
 const elementWidth = 120;
 const elementHeight = 70;
-
+const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 const connectionTypes = [
   { value: 'thread', label: 'Thread', color: '#b33' },
   { value: 'logic', label: 'Logic', color: '#3366cc' },
@@ -363,6 +376,20 @@ const resetBoardConfirm = () => {
   }
 };
 
+const addTestSuspect = () => {
+  boardStore.addElement({
+    id: Date.now().toString(),
+    type: 'suspect',
+    name: 'John Doe',
+    alibi: 'At the crime scene',
+    motive: 'Revenge',
+    traits: ['Aggressive', 'Secretive'],
+    position: { x: 200, y: 150 },
+    description: 'Test suspect inserted manually',
+    notes: 'Watch closely',
+  });
+};
+
 onMounted(async () => {
   if (!boardStore.isInitialized) boardStore.initializeBoard();
   await nextTick();
@@ -371,6 +398,39 @@ onMounted(async () => {
     boardHeight.value = boardRef.value.offsetHeight;
   }
 });
+
+const sidebarRef = ref(null);
+let sidebarDragging = false;
+let sidebarOffset = { x: 0, y: 0 };
+
+const sidebarPosition = ref({ top: 100, left: 100 });
+
+const startSidebarDrag = (event) => {
+  if (!sidebarRef.value) return;
+
+  sidebarDragging = true;
+  const rect = sidebarRef.value.getBoundingClientRect();
+  sidebarOffset = {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  };
+  window.addEventListener('mousemove', onSidebarDrag);
+  window.addEventListener('mouseup', endSidebarDrag);
+};
+
+const onSidebarDrag = (event) => {
+  if (!sidebarDragging) return;
+  sidebarPosition.value = {
+    left: event.clientX - sidebarOffset.x,
+    top: event.clientY - sidebarOffset.y,
+  };
+};
+
+const endSidebarDrag = () => {
+  sidebarDragging = false;
+  window.removeEventListener('mousemove', onSidebarDrag);
+  window.removeEventListener('mouseup', endSidebarDrag);
+};
 </script>
 
 <style scoped>
@@ -380,10 +440,46 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
 }
+
 .board-controls {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: #fceabb;
+  border-bottom: 3px solid #d4aa00;
+  z-index: 100;
+  overflow-x: auto;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+.control-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: start;
+}
+.board-controls button,
+.board-controls select {
+  background-color: #fff5cc;
+  color: #3b2f1c;
+  border: 1px solid #caa35d;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  font-weight: 600;
+  font-family: 'Courier New', Courier, monospace;
+  box-shadow: 2px 2px 5px #bfa263;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.board-controls button:hover,
+.board-controls select:hover {
+  background-color: #e0e0e0;
+  color: #000;
 }
 .element-tools .active {
   background: #33a;
@@ -397,21 +493,38 @@ onMounted(async () => {
   font-size: 1em;
 }
 .connection-overlay {
-  background: #eef;
-  padding: 0.5em 1em;
+  background-color: #f3f8ff; /* soft blue */
+  color: #222;
+  padding: 0.7em 1.2em;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-left: 5px solid #3366cc; /* thread color */
   border-radius: 6px;
-  margin-bottom: 0.5em;
-  font-size: 1em;
+  box-shadow: 1px 1px 5px #ccc;
+  margin: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .detective-board {
   flex: 1;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  position: relative;
-  overflow: hidden;
-  user-select: none;
+  background-color: #f7eec8;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 244, 200, 0.4),
+      rgba(255, 244, 200, 0.4) 10px,
+      rgba(248, 232, 180, 0.4) 10px,
+      rgba(248, 232, 180, 0.4) 20px
+    ),
+    radial-gradient(circle, rgba(200,160,100,0.07) 1px, transparent 1px);
+  background-size: 20px 20px, 5px 5px;
+  background-blend-mode: multiply;
+  border: none;
+  border-radius: 0;
 }
+
 .board-content {
   width: 100%;
   height: 100%;
@@ -432,14 +545,23 @@ onMounted(async () => {
   right: 2rem;
   width: 300px;
   background: #fff;
+  background-color: #fffbe7;
+  border: 1px solid #ccc;
+  color: #222;
   border: 1px solid #bbb;
   border-radius: 8px;
+  color: #222;
   box-shadow: 0 4px 24px #0002;
   padding: 1.5em 1.5em 1em 1.5em;
   z-index: 100;
   display: flex;
   flex-direction: column;
   gap: 0.7em;
+}
+.element-sidebar h3 {
+  font-size: 1.1em;
+  margin-bottom: 0.5em;
+  color:rgb(6, 0, 0);
 }
 .element-sidebar label {
   display: flex;
@@ -455,6 +577,8 @@ onMounted(async () => {
   border-radius: 4px;
   border: 1px solid #bbb;
   font-size: 1em;
+  color: #111;                 /* NEW */
+  background-color: #fff;      /* Ensures readability */
 }
 .sidebar-actions {
   display: flex;
@@ -474,5 +598,41 @@ onMounted(async () => {
   font-size: 1.2em;
   z-index: 200;
   box-shadow: 0 2px 12px #0001;
+}
+.type-suspect {
+  border-left: 5px solid #f88;
+  background-color: #fff5f5;
+}
+
+.type-clue {
+  border-left: 5px solid #88c;
+  background-color: #f0f5ff;
+}
+
+.type-location {
+  border-left: 5px solid #cc3;
+  background-color: #ffffef;
+}
+
+.type-note {
+  border-left: 5px solid #c8a2ff;
+  background-color: #f9f0ff;
+}
+.cancel-link {
+  color: #3366cc;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+  margin-left: 1em;
+}
+.cancel-link:hover {
+  color: #003399;
+}
+
+@media (max-width: 600px) {
+  .board-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style> 

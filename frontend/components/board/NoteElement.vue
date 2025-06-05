@@ -1,11 +1,18 @@
 <template>
   <div class="note-element">
-    <slot>Note</slot>
-    <div class="element-meta">{{ element?.type }} #{{ element?.id }}</div>
+    <button class="delete-button" @click.stop="emit('delete', element.id)">×</button>
+    <div class="element-header">Note</div>
+    <div class="element-body">
+      <p>{{ element?.description || 'note' }}</p>
+    </div>
+    <div class="element-footer">note #{{ element?.id }}</div>
   </div>
 </template>
 
+
 <script setup>
+const emit = defineEmits(['delete'])
+
 defineProps({
   element: { type: Object, required: false },
 });
@@ -13,18 +20,54 @@ defineProps({
 
 <style scoped>
 .note-element {
-  min-width: 120px;
-  min-height: 70px;
-  background: #f3e5f5;
-  border: 2px solid #8e24aa;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(142,36,170,0.08);
-  padding: 0.5rem;
+  background-color: #f3e8ff;
+  border: 2px dashed #a678d9;
+  box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.15);
+  font-family: 'Courier New', Courier, monospace;
+  padding: 0.75rem;
+  border-radius: 10px;
   position: absolute;
+  width: 160px;
+  min-height: 80px;
+  transform: rotate(1deg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
-.element-meta {
-  font-size: 0.7em;
-  color: #8e24aa;
-  margin-top: 0.5em;
+.delete-button {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  border: none;
+  background:rgb(229, 208, 252);
+  color: #6b3fa0;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  line-height: 16px;
+  font-size: 14px;
+  cursor: pointer;
 }
-</style> 
+.element-header {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #6b3fa0;
+  border-bottom: 1px dashed #a678d9;
+  padding-bottom: 0.2rem;
+  margin-bottom: 0.3rem;
+}
+
+.element-body p {
+  font-size: 0.8rem;
+  color: #5a4d6d;
+  margin: 0;
+}
+
+.element-footer {
+  font-size: 0.7rem;
+  color: #888;
+  margin-top: 0.5rem;
+  text-align: right;
+}
+</style>
