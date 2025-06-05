@@ -26,15 +26,15 @@ export const useBoardStore = defineStore('board', {
       if (this.history.length === 0) return;
       this.future.push(cloneState(this));
       const prev = this.history.pop();
-      this.elements = prev.elements;
-      this.connections = prev.connections;
+      this.elements = [...prev.elements];
+      this.connections = [...prev.connections];
     },
     redo() {
       if (this.future.length === 0) return;
       this.history.push(cloneState(this));
       const next = this.future.pop();
-      this.elements = next.elements;
-      this.connections = next.connections;
+      this.elements = [...next.elements];
+      this.connections = [...next.connections];
     },
     initializeBoard() {
       this.isInitialized = true;
@@ -52,8 +52,8 @@ export const useBoardStore = defineStore('board', {
     },
     deleteElement(id) {
       this.pushHistory();
-      this.elements = this.elements.filter(e => e.id !== id);
-      this.connections = this.connections.filter(c => c.sourceId !== id && c.targetId !== id);
+      this.elements = [...this.elements.filter(e => e.id !== id)];
+      this.connections = [...this.connections.filter(c => c.sourceId !== id && c.targetId !== id)];
     },
     addConnection(connection) {
       this.pushHistory();
@@ -73,8 +73,8 @@ export const useBoardStore = defineStore('board', {
     },
     async loadBoard() {
       const data = await boardService.fetchBoardState();
-      this.elements = data.elements || [];
-      this.connections = data.connections || [];
+      this.elements = [...(data.elements || [])];
+      this.connections = [...(data.connections || [])];
       this.pushHistory();
     },
     async saveBoard() {
