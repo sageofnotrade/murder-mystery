@@ -1,18 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "strict": true,
-    "skipLibCheck": true,
-    "types": ["node", "vitest/globals", "@testing-library/jest-dom"],
-    "module": "ESNext",
-    "paths": {
-      "@/*": ["./*"]
-    }
+    "types": ["node", "vitest/globals"],
+    "allowJs": true,
+    "checkJs": false
   },
   "include": [
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
-    "**/*.spec.tsx"
+    "**/*.spec.tsx",
+    "tests/**/*"
   ]
 } 
