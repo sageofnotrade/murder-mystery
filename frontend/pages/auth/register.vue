@@ -67,8 +67,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useSupabaseClient, useSupabaseUser } from '#imports'
+import { ref, computed, onMounted } from 'vue'
+
+const { $supabase } = useNuxtApp()
 
 const email = ref('')
 const password = ref('')
@@ -76,13 +77,19 @@ const confirmPassword = ref('')
 const loading = ref(false)
 const error = ref(null)
 const success = ref(null)
-const supabase = useSupabaseClient()
-const user = useSupabaseUser()
+const supabase = $supabase
+const user = ref(null)
 
-// Redirect if already logged in
-if (user.value) {
-  navigateTo('/dashboard')
-}
+onMounted(async () => {
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
+
+  if (session?.user) {
+    user.value = session.user
+    navigateTo('/dashboard')
+  }
+})
 
 const passwordsMatch = computed(() => {
   return password.value === confirmPassword.value
@@ -93,12 +100,12 @@ const handleRegister = async () => {
     loading.value = true
     error.value = null
     success.value = null
-    
+
     if (!passwordsMatch.value) {
       error.value = 'Passwords do not match'
       return
     }
-    
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.value,
       password: password.value,
@@ -106,7 +113,7 @@ const handleRegister = async () => {
         emailRedirectTo: `${window.location.origin}/auth/callback`
       }
     })
-    
+
     if (signUpError) {
       error.value = signUpError.message
       return
@@ -114,7 +121,6 @@ const handleRegister = async () => {
 
     if (data?.user) {
       success.value = 'Registration successful! Please check your email for a confirmation link before signing in.'
-      // Clear the form
       email.value = ''
       password.value = ''
       confirmPassword.value = ''

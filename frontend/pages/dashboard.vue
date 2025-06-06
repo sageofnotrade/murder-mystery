@@ -30,31 +30,33 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { useSupabaseClient, useSupabaseUser } from '#imports'
+import { navigateTo } from '#app'
 
 const router = useRouter()
-const supabase = useSupabaseClient()
-const user = useSupabaseUser()
+const { $supabase } = useNuxtApp()
 
-// Redirect to login if not authenticated
-if (!user.value) {
-  navigateTo('/auth/login')
-}
+// Manually check auth (adjust this depending on your app logic)
+onMounted(async () => {
+  const {
+    data: { session },
+  } = await $supabase.auth.getSession()
+
+  if (!session) {
+    navigateTo('/auth/login')
+  }
+})
 
 const startProfileSetup = () => {
-  // Navigate to profile setup page
   router.push('/profile/setup')
 }
 
 const handleLogout = async () => {
   try {
-    const { error } = await supabase.auth.signOut()
+    const { error } = await $supabase.auth.signOut()
     if (error) throw error
-    
-    // Redirect to login page after successful logout
     await navigateTo('/auth/login')
   } catch (error) {
     console.error('Error logging out:', error.message)
   }
 }
-</script> 
+</script>

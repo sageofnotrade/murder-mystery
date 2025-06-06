@@ -25,7 +25,7 @@
     "verbatimModuleSyntax": true,
     "jsx": "preserve",
     "jsxImportSource": "vue",
-    "types": ["node"],
+    "types": ["node", "@nuxt/schema"],
     "paths": {
       "~": ["./"],
       "~/*": ["./*"],
@@ -40,13 +40,12 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "**/*.vue",
-    ".nuxt/**/*"
+    "**/*.vue"
   ],
   "exclude": [
     "node_modules",
-    ".nuxt/dist",
+    ".nuxt",
     ".output",
     "dist"
   ]
-} 
+}

@@ -73,6 +73,22 @@ import MultipleChoiceQuestion from './MultipleChoiceQuestion.vue';
 import SliderQuestion from './SliderQuestion.vue';
 import OpenEndedQuestion from './OpenEndedQuestion.vue';
 
+interface Question {
+  id: string | number
+  type: string
+  question: string
+  options?: any[]
+  min?: number
+  max?: number
+  minLabel?: string
+  maxLabel?: string
+  placeholder?: string
+  maxLength?: number
+}
+
+type Responses = Record<string | number, any>
+type ValidFields = Record<string | number, boolean>
+
 const props = defineProps({
   questionnaire: {
     type: Object,
@@ -83,11 +99,11 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'complete']);
 
 const store = useProfileQuestionnaireStore();
-const currentSectionIndex = ref(0);
-const responses = ref({});
-const validFields = ref({});
-const questionRefs = ref([]);
-const submitting = ref(false);
+const currentSectionIndex = ref<number>(0)
+const responses = ref<Responses>({})
+const validFields = ref<ValidFields>({})
+const questionRefs = ref<(any | null)[]>([])
+const submitting = ref(false)
 
 // Load saved responses if available
 onMounted(() => {
@@ -116,34 +132,32 @@ const currentSection = computed(() => {
 });
 
 const progressPercentage = computed(() => {
-  // Calculate progress based on sections and questions completed
   const totalSections = props.questionnaire.sections.length;
   const sectionsCompleted = currentSectionIndex.value;
-  
-  // Base progress from completed sections
+
   let baseProgress = (sectionsCompleted / totalSections) * 100;
-  
-  // Additional progress from current section's completed questions
+
   const totalQuestionsInSection = currentSection.value.questions.length;
   let completedQuestionsInSection = 0;
-  
-  currentSection.value.questions.forEach(question => {
+
+  currentSection.value.questions.forEach((question: Question) => {
     if (responses.value[question.id]) {
       completedQuestionsInSection++;
     }
   });
-  
+
   const additionalProgress = (completedQuestionsInSection / totalQuestionsInSection) * (1 / totalSections) * 100;
-  
+
   return Math.min(Math.round(baseProgress + additionalProgress), 100);
 });
 
 const isSectionValid = computed(() => {
   // Check if all required questions in the current section have valid answers
-  return currentSection.value.questions.every(question => validFields.value[question.id]);
+  return currentSection.value.questions.every((question: { id: string }) => validFields.value[question.id]);
+
 });
 
-const getComponentType = (type) => {
+const getComponentType = (type: string) => {
   switch (type) {
     case 'multiple-choice':
       return MultipleChoiceQuestion;
@@ -156,7 +170,7 @@ const getComponentType = (type) => {
   }
 };
 
-const getQuestionProps = (question) => {
+const getQuestionProps = (question: Question) => {
   switch (question.type) {
     case 'multiple-choice':
       return { options: question.options };
@@ -177,12 +191,12 @@ const getQuestionProps = (question) => {
   }
 };
 
-const updateResponse = (questionId, value) => {
+const updateResponse = (questionId: string | number, value: any) => {
   responses.value[questionId] = value;
   store.updateResponses(responses.value);
 };
 
-const updateValidity = (questionId, isValid) => {
+const updateValidity = (questionId: string | number, isValid: boolean) => {
   validFields.value[questionId] = isValid;
 };
 

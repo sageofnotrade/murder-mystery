@@ -47,6 +47,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-expect-error: Nuxt macro
 definePageMeta({
   layout: 'default'
 })
