@@ -162,8 +162,7 @@ class TestClueAgent:
     @pytest.fixture
     def clue_agent(self):
         """Create ClueAgent instance for testing."""
-        with patch('backend.agents.clue_agent.mem0'), \
-             patch('backend.agents.clue_agent.ModelRouter'), \
+        with patch('backend.agents.clue_agent.ModelRouter'), \
              patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
             return ClueAgent(use_mem0=False)
 
@@ -581,8 +580,7 @@ class TestClueAgent:
     @patch.dict(os.environ, {"LLM_MODEL": "test-model"})
     def test_model_configuration(self):
         """Test that agent uses configured model."""
-        with patch('backend.agents.clue_agent.mem0'), \
-             patch('backend.agents.clue_agent.ModelRouter'), \
+        with patch('backend.agents.clue_agent.ModelRouter'), \
              patch('backend.agents.clue_agent.PydanticAgent') as mock_agent:
             
             ClueAgent(use_mem0=False)

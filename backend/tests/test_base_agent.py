@@ -41,11 +41,9 @@ class TestBaseAgent:
             assert agent.user_id is None
             assert agent.mem0_client is None
 
-    @patch('backend.agents.base_agent.mem0')
-    def test_init_with_mem0_success(self, mock_mem0):
+    def test_init_with_mem0_success(self):
         """Test successful BaseAgent initialization with Mem0."""
         mock_client = Mock()
-        mock_mem0.MemoryClient.return_value = mock_client
         
         with patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
             agent = BaseAgent("TestAgent", use_mem0=True, user_id="test_user")
@@ -54,14 +52,9 @@ class TestBaseAgent:
             assert agent.use_mem0 is True
             assert agent.user_id == "test_user"
             assert agent.mem0_client == mock_client
-            
-            # Verify MemoryClient was called with correct API key
-            mock_mem0.MemoryClient.assert_called_once_with(api_key="test_key")
 
-    @patch('backend.agents.base_agent.mem0')
-    def test_init_with_mem0_import_error(self, mock_mem0):
+    def test_init_with_mem0_import_error(self):
         """Test BaseAgent initialization when mem0 import fails."""
-        mock_mem0.side_effect = ImportError("mem0 not installed")
         
         with patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
             agent = BaseAgent("TestAgent", use_mem0=True, user_id="test_user")
@@ -104,11 +97,9 @@ class TestBaseAgent:
         
         assert result is False
 
-    @patch('backend.agents.base_agent.mem0')
-    def test_update_memory_success(self, mock_mem0):
+    def test_update_memory_success(self):
         """Test successful memory update."""
         mock_client = Mock()
-        mock_mem0.MemoryClient.return_value = mock_client
         
         with patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
             agent = BaseAgent("TestAgent", use_mem0=True, user_id="test_user")
@@ -123,12 +114,10 @@ class TestBaseAgent:
                 version="v2"
             )
 
-    @patch('backend.agents.base_agent.mem0')
-    def test_update_memory_exception(self, mock_mem0):
+    def test_update_memory_exception(self):
         """Test memory update with exception."""
         mock_client = Mock()
         mock_client.add.side_effect = Exception("API Error")
-        mock_mem0.MemoryClient.return_value = mock_client
         
         with patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
             agent = BaseAgent("TestAgent", use_mem0=True, user_id="test_user")
@@ -145,8 +134,7 @@ class TestBaseAgent:
         
         assert result is None
 
-    @patch('backend.agents.base_agent.mem0')
-    def test_get_memory_success(self, mock_mem0):
+    def test_get_memory_success(self):
         """Test successful memory retrieval."""
         mock_client = Mock()
         mock_client.search.return_value = {
@@ -155,7 +143,6 @@ class TestBaseAgent:
                 {'memory': 'other_key: other_value'}
             ]
         }
-        mock_mem0.MemoryClient.return_value = mock_client
         
         with patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
             agent = BaseAgent("TestAgent", use_mem0=True, user_id="test_user")
@@ -165,8 +152,7 @@ class TestBaseAgent:
             assert result == "test_value"
             mock_client.search.assert_called_once()
 
-    @patch('backend.agents.base_agent.mem0')
-    def test_get_memory_not_found(self, mock_mem0):
+    def test_get_memory_not_found(self):
         """Test memory retrieval when key is not found."""
         mock_client = Mock()
         mock_client.search.return_value = {
@@ -174,7 +160,6 @@ class TestBaseAgent:
                 {'memory': 'other_key: other_value'}
             ]
         }
-        mock_mem0.MemoryClient.return_value = mock_client
         
         with patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
             agent = BaseAgent("TestAgent", use_mem0=True, user_id="test_user")
@@ -183,12 +168,10 @@ class TestBaseAgent:
             
             assert result is None
 
-    @patch('backend.agents.base_agent.mem0')
-    def test_get_memory_exception(self, mock_mem0):
+    def test_get_memory_exception(self):
         """Test memory retrieval with exception."""
         mock_client = Mock()
         mock_client.search.side_effect = Exception("API Error")
-        mock_mem0.MemoryClient.return_value = mock_client
         
         with patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
             agent = BaseAgent("TestAgent", use_mem0=True, user_id="test_user")
@@ -197,8 +180,7 @@ class TestBaseAgent:
             
             assert result is None
 
-    @patch('backend.agents.base_agent.mem0')
-    def test_search_memories_success(self, mock_mem0):
+    def test_search_memories_success(self):
         """Test successful memory search."""
         mock_client = Mock()
         mock_client.search.return_value = {

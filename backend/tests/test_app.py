@@ -4,6 +4,7 @@ import json
 
 def test_index_endpoint(client):
     """Test the main index endpoint."""
+    client, _ = client
     response = client.get('/')
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -15,6 +16,7 @@ def test_index_endpoint(client):
 
 def test_health_endpoint(client):
     """Test the health check endpoint."""
+    client, _ = client
     response = client.get('/health')
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -27,5 +29,6 @@ def test_health_endpoint(client):
 
 def test_invalid_endpoint(client):
     """Test accessing an invalid endpoint."""
+    client, _ = client
     response = client.get('/invalid-endpoint')
     assert response.status_code == 404 

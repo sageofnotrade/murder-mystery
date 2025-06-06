@@ -2,18 +2,9 @@
 import pytest
 import json
 
-@pytest.fixture(scope="module")
-def app():
-    return create_app({'TESTING': True})
-
-@pytest.fixture
-def client(app):
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
-
 def test_register_missing_data(client):
     """Test registration with missing data."""
+    client, _ = client
     response = client.post(
         '/api/auth/register',
         json={},
@@ -26,6 +17,7 @@ def test_register_missing_data(client):
 
 def test_register_invalid_email(client):
     """Test registration with invalid email format."""
+    client, _ = client
     response = client.post(
         '/api/auth/register',
         json={
@@ -41,6 +33,7 @@ def test_register_invalid_email(client):
 
 def test_register_weak_password(client):
     """Test registration with weak password."""
+    client, _ = client
     response = client.post(
         '/api/auth/register',
         json={
@@ -56,6 +49,7 @@ def test_register_weak_password(client):
 
 def test_login_missing_data(client):
     """Test login with missing data."""
+    client, _ = client
     response = client.post(
         '/api/auth/login',
         json={},
@@ -68,6 +62,7 @@ def test_login_missing_data(client):
 
 def test_login_invalid_email(client):
     """Test login with invalid email format."""
+    client, _ = client
     response = client.post(
         '/api/auth/login',
         json={
@@ -83,6 +78,7 @@ def test_login_invalid_email(client):
 
 def test_validate_token_missing_header(client):
     """Test token validation with missing Authorization header."""
+    client, _ = client
     response = client.post(
         '/api/auth/validate',
         headers={'Content-Type': 'application/json'}
@@ -94,6 +90,7 @@ def test_validate_token_missing_header(client):
 
 def test_logout_missing_token(client):
     """Test logout with missing token."""
+    client, _ = client
     response = client.post(
         '/api/auth/logout',
         headers={'Content-Type': 'application/json'}

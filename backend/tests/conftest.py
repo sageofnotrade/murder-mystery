@@ -44,25 +44,29 @@ def patch_supabase_create_client():
 
 @pytest.fixture
 def app():
-    """Provide the Flask app instance and the patched mock for testing."""
+    """Provide the Flask app instance for testing."""
     from unittest.mock import patch
     with patch('backend.routes.user_progress_routes.UserProgressService') as mock_service, \
          patch('backend.routes.user_progress_routes.jwt_required', lambda f: (print('jwt_required patched'), f)[1]), \
          patch('backend.routes.user_progress_routes.get_jwt_identity', lambda: 'user-123'):
-        # Import create_app only after patching is active
         from backend.app import create_app
         app = create_app()
         with app.app_context():
             print('\nREGISTERED ROUTES:')
             for rule in app.url_map.iter_rules():
                 print(rule)
-            yield app, mock_service
+            yield app
 
 @pytest.fixture
-def client(app):
+def mock_service():
+    """Provide the patched mock service for testing."""
+    with patch('backend.routes.user_progress_routes.UserProgressService') as mock_service:
+        yield mock_service
+
+@pytest.fixture
+def client(app, mock_service):
     """A test client for the app, and the mock service."""
-    app_instance, mock_service = app
-    return app_instance.test_client(), mock_service
+    return app.test_client(), mock_service
 
 @pytest.fixture
 def runner(app):
