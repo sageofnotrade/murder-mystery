@@ -1,0 +1,27 @@
+[run]
+source = backend
+omit =
+    */tests/*
+    */migrations/*
+    */__init__.py
+    */config.py
+    */wsgi.py
+    */manage.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+    except ImportError:
+    def main\(\):
+
+[html]
+directory = coverage_html
+title = Murder Mystery Backend Coverage Report
+
+[xml]
+output = coverage.xml 
