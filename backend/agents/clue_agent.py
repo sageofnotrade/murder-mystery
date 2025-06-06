@@ -31,6 +31,7 @@ from pydantic_ai import Agent as PydanticAgent, RunContext, ModelRetry
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.mistral import MistralModel
+from pydantic_ai.messages import ModelMessage
 
 # --- Pydantic Models ---
 
@@ -101,11 +102,14 @@ class ClueAgentDependencies:
 
 class ClueAgent(BaseAgent):
     """Agent responsible for clue generation and updates."""
-    def __init__(self, memory=None, use_mem0=True, user_id=None, mem0_config=None):
+    def __init__(self, memory=None, use_mem0=True, user_id=None, mem0_config=None, model_message_cls=None):
         super().__init__("ClueAgent", memory, use_mem0=use_mem0, user_id=user_id, mem0_config=mem0_config)
 
         # Initialize ModelRouter for intelligent model selection
         self.model_router = ModelRouter()
+
+        # Allow injection of ModelMessage class for testability
+        self.model_message_cls = model_message_cls or ModelMessage
 
         # Initialize PydanticAI agent
         self.pydantic_agent = self._create_pydantic_agent()
@@ -321,8 +325,6 @@ class ClueAgent(BaseAgent):
         Returns:
             ClueData: The generated clue data.
         """
-        from pydantic_ai.messages import ModelMessage
-
         load_dotenv()
 
         # Format search results for the prompt
@@ -360,8 +362,8 @@ class ClueAgent(BaseAgent):
 
             # Prepare messages for the model
             messages = [
-                ModelMessage(role="system", content=system_prompt),
-                ModelMessage(role="user", content=user_prompt)
+                self.model_message_cls(role="system", content=system_prompt),
+                self.model_message_cls(role="user", content=user_prompt)
             ]
 
             # Generate the clue using the reasoning model via ModelRouter
@@ -371,6 +373,8 @@ class ClueAgent(BaseAgent):
                 temperature=0.7,
                 max_tokens=800
             )
+
+            print("[DEBUG] ClueAgent response.content:", repr(response.content))
 
             # Store the response in memory for debugging if tracking is enabled
             if self.use_mem0 and self.mem0_config.get("track_performance", True):
@@ -394,15 +398,23 @@ class ClueAgent(BaseAgent):
                 if "{" in content and "}" in content:
                     json_str = content[content.find("{"):content.rfind("}")+1]
                     clue_dict = json.loads(json_str)
+                    print("[DEBUG] ClueAgent parsed clue_dict:", clue_dict)
 
                     # Create a ClueData object from the parsed JSON
-                    return ClueData(
-                        description=clue_dict.get("description", prompt),
-                        details=clue_dict.get("details", content),
-                        significance=clue_dict.get("significance"),
-                        related_to=clue_dict.get("related_to", []),
-                        confidence=clue_dict.get("confidence")
-                    )
+                    try:
+                        result = ClueData(
+                            description=clue_dict.get("description", prompt),
+                            details=clue_dict.get("details", "Unable to analyze this clue at the moment."),
+                            significance=clue_dict.get("significance"),
+                            related_to=clue_dict.get("related_to", []),
+                            confidence=clue_dict.get("confidence"),
+                            **{k: v for k, v in clue_dict.items() if k not in ["description", "details", "significance", "related_to", "confidence"]}
+                        )
+                        print("[DEBUG] ClueAgent constructed ClueData:", result)
+                        return result
+                    except Exception as e:
+                        print("[DEBUG] ClueAgent ClueData construction error:", e)
+                        raise
             except json.JSONDecodeError:
                 # If JSON parsing fails, use the raw content
                 pass
@@ -473,8 +485,8 @@ class ClueAgent(BaseAgent):
 
         # Prepare messages for the model
         messages = [
-            Message(role="system", content=system_prompt),
-            Message(role="user", content=user_prompt)
+            self.model_message_cls(role="system", content=system_prompt),
+            self.model_message_cls(role="user", content=user_prompt)
         ]
 
         try:

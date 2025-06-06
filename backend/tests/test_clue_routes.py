@@ -1,8 +1,8 @@
+# NOTE: Uses global app/client fixtures from conftest.py. Do not import create_app or define app/client fixtures here.
 import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 from datetime import datetime
-from backend.app import create_app
 
 @pytest.fixture
 def mock_supabase():
@@ -33,16 +33,6 @@ def sample_template_clue():
         'location': 'kitchen',
         'is_red_herring': False
     }
-
-@pytest.fixture
-def app():
-    return create_app({'TESTING': True})
-
-@pytest.fixture
-def client(app):
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
 
 @pytest.mark.asyncio
 async def test_get_story_clues(client, mock_supabase, sample_clue):

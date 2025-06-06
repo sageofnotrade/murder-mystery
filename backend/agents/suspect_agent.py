@@ -115,11 +115,14 @@ class SuspectAgentDependencies:
 
 class SuspectAgent(BaseAgent):
     """Agent responsible for suspect profile generation, dialogue, and behavior."""
-    def __init__(self, memory=None, use_mem0=True, user_id=None, mem0_config=None):
+    def __init__(self, memory=None, use_mem0=True, user_id=None, mem0_config=None, model_message_cls=None):
         super().__init__("SuspectAgent", memory, use_mem0=use_mem0, user_id=user_id, mem0_config=mem0_config)
 
         # Initialize ModelRouter for intelligent model selection
         self.model_router = ModelRouter()
+
+        # Allow injection of ModelMessage class for testability
+        self.model_message_cls = model_message_cls or ModelMessage
 
         # Initialize PydanticAI agent
         self.pydantic_agent = self._create_pydantic_agent()
@@ -365,8 +368,8 @@ class SuspectAgent(BaseAgent):
         )
 
         planning_messages = [
-            ModelMessage(role="system", content=planning_system_prompt),
-            ModelMessage(role="user", content=planning_user_prompt)
+            self.model_message_cls(role="system", content=planning_system_prompt),
+            self.model_message_cls(role="user", content=planning_user_prompt)
         ]
 
         try:
@@ -409,8 +412,8 @@ class SuspectAgent(BaseAgent):
             )
 
             writing_messages = [
-                ModelMessage(role="system", content=writing_system_prompt),
-                ModelMessage(role="user", content=writing_user_prompt)
+                self.model_message_cls(role="system", content=writing_system_prompt),
+                self.model_message_cls(role="user", content=writing_user_prompt)
             ]
 
             # Generate the profile using the writing model
@@ -428,6 +431,7 @@ class SuspectAgent(BaseAgent):
 
             # Extract the generated profile
             profile_text = writing_response.content
+            print("[DEBUG] SuspectAgent writing_response.content:", repr(profile_text))
 
             if not profile_text:
                 if self.use_mem0:
@@ -442,6 +446,7 @@ class SuspectAgent(BaseAgent):
             try:
                 # Try to parse as JSON first
                 profile_dict = json.loads(profile_text)
+                print("[DEBUG] SuspectAgent parsed profile_dict:", profile_dict)
                 return SuspectProfile(**profile_dict)
             except json.JSONDecodeError:
                 # If not JSON, try to extract structured information from text
@@ -566,8 +571,8 @@ class SuspectAgent(BaseAgent):
         )
         
         planning_messages = [
-            ModelMessage(role="system", content=planning_system_prompt),
-            ModelMessage(role="user", content=planning_user_prompt)
+            self.model_message_cls(role="system", content=planning_system_prompt),
+            self.model_message_cls(role="user", content=planning_user_prompt)
         ]
         
         try:
@@ -604,8 +609,8 @@ class SuspectAgent(BaseAgent):
             )
             
             writing_messages = [
-                ModelMessage(role="system", content=writing_system_prompt),
-                ModelMessage(role="user", content=writing_user_prompt)
+                self.model_message_cls(role="system", content=writing_system_prompt),
+                self.model_message_cls(role="user", content=writing_user_prompt)
             ]
             
             writing_response = self.model_router.complete(
@@ -615,9 +620,7 @@ class SuspectAgent(BaseAgent):
                 max_tokens=1000
             )
             
-            if self.use_mem0 and self.mem0_config.get("track_performance", True):
-                self.update_memory("dialogue_writing_response", str(writing_response.content)[:500])
-                self.update_memory("dialogue_writing_model", self.model_router.get_model_name_for_task("writing"))
+            print("[DEBUG] SuspectAgent dialogue writing_response.content:", repr(writing_response.content))
             
             dialogue_text = writing_response.content
             

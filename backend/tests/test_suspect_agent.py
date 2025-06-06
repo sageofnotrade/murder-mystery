@@ -187,7 +187,7 @@ class TestSuspectAgent:
     @pytest.fixture
     def suspect_agent(self):
         """Create SuspectAgent instance for testing."""
-        with patch('backend.agents.suspect_agent.mem0'), \
+        with \
              patch('backend.agents.suspect_agent.ModelRouter'), \
              patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
             return SuspectAgent(use_mem0=False)
@@ -251,6 +251,7 @@ class TestSuspectAgent:
 
         with patch.object(suspect_agent.model_router, 'get_model') as mock_get_model:
             mock_llm = Mock()
+            mock_llm.chat.completions.create.return_value.choices = [Mock()]
             mock_llm.chat.completions.create.return_value.choices[0].message.content = json.dumps(mock_response)
             mock_get_model.return_value = mock_llm
 
@@ -307,6 +308,7 @@ class TestSuspectAgent:
 
         with patch.object(suspect_agent.model_router, 'get_model') as mock_get_model:
             mock_llm = Mock()
+            mock_llm.chat.completions.create.return_value.choices = [Mock()]
             mock_llm.chat.completions.create.return_value.choices[0].message.content = json.dumps(mock_response)
             mock_get_model.return_value = mock_llm
 
@@ -524,7 +526,7 @@ class TestSuspectAgent:
     @patch.dict(os.environ, {"LLM_MODEL": "test-model"})
     def test_model_configuration(self):
         """Test that agent uses configured model."""
-        with patch('backend.agents.suspect_agent.mem0'), \
+        with \
              patch('backend.agents.suspect_agent.ModelRouter'), \
              patch('backend.agents.suspect_agent.PydanticAgent') as mock_agent:
             

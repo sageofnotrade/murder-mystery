@@ -1,16 +1,6 @@
+# NOTE: Uses global app/client fixtures from conftest.py. Do not import create_app or define app/client fixtures here.
 import pytest
 import json
-from backend.app import create_app
-
-@pytest.fixture
-def app():
-    return create_app({'TESTING': True})
-
-@pytest.fixture
-def client(app):
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
 
 def test_index_endpoint(client):
     """Test the main index endpoint."""

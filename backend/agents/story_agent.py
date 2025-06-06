@@ -975,87 +975,52 @@ class StoryAgent(BaseAgent):
     def _brave_search(self, query: str) -> list[dict]:
         """
         Query the Brave Search API and return a list of results.
-        Uses PydanticAI's common tools if available, otherwise falls back to direct API calls.
+        Uses direct API call only (removes pydantic_ai BraveSearch dependency).
         """
-        # Try using PydanticAI's common tools for search
+        # Fallback: Direct API call
+        import os
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        api_key = os.getenv("BRAVE_API_KEY")
+
+        if not api_key:
+            if self.use_mem0:
+                self.update_memory("last_error", "Missing Brave API key")
+            return []
+
+        url = "https://api.search.brave.com/res/v1/web/search"
+        headers = {"Accept": "application/json", "X-Subscription-Token": api_key}
+        params = {"q": query, "count": 5, "freshness": "month"}
+
         try:
-            # The import path might vary depending on the PydanticAI version
-            from pydantic_ai.common_tools import BraveSearch
-
-            # Create a Brave Search tool
-            brave_search = BraveSearch()
-
-            # Perform the search
-            search_results = brave_search.search(query=query, count=5)
+            resp = requests.get(url, headers=headers, params=params, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
 
             # Store the search response in memory if tracking is enabled
             if self.use_mem0 and self.mem0_config.get("track_performance", True):
                 self.update_memory("last_search_query", query)
-                self.update_memory("last_search_count", str(len(search_results)))
-                self.update_memory("search_method", "pydantic_ai_brave_search")
+                self.update_memory("last_search_count", str(len(data.get("web", {}).get("results", []))))
+                self.update_memory("search_method", "direct_brave_api")
 
-            # Convert to our expected format
             results = [
                 {
-                    "title": r.title,
-                    "url": r.url,
-                    "snippet": r.description,
-                    "source": r.source if hasattr(r, "source") else ""
+                    "title": r["title"],
+                    "url": r["url"],
+                    "snippet": r.get("description", ""),
+                    "source": r.get("source", "")
                 }
-                for r in search_results
+                for r in data.get("web", {}).get("results", [])
             ]
 
             return results
 
-        except Exception as e:
-            # Log the error but continue with the fallback method
+        except requests.RequestException as e:
+            error_msg = f"Brave Search API error: {str(e)}"
             if self.use_mem0:
-                self.update_memory("brave_search_pydantic_ai_error", str(e))
-
-            # Fallback: Direct API call
-            import os
-            from dotenv import load_dotenv
-
-            load_dotenv()
-            api_key = os.getenv("BRAVE_API_KEY")
-
-            if not api_key:
-                if self.use_mem0:
-                    self.update_memory("last_error", "Missing Brave API key")
-                return []
-
-            url = "https://api.search.brave.com/res/v1/web/search"
-            headers = {"Accept": "application/json", "X-Subscription-Token": api_key}
-            params = {"q": query, "count": 5, "freshness": "month"}
-
-            try:
-                resp = requests.get(url, headers=headers, params=params, timeout=10)
-                resp.raise_for_status()
-                data = resp.json()
-
-                # Store the search response in memory if tracking is enabled
-                if self.use_mem0 and self.mem0_config.get("track_performance", True):
-                    self.update_memory("last_search_query", query)
-                    self.update_memory("last_search_count", str(len(data.get("web", {}).get("results", []))))
-                    self.update_memory("search_method", "direct_brave_api")
-
-                results = [
-                    {
-                        "title": r["title"],
-                        "url": r["url"],
-                        "snippet": r.get("description", ""),
-                        "source": r.get("source", "")
-                    }
-                    for r in data.get("web", {}).get("results", [])
-                ]
-
-                return results
-
-            except requests.RequestException as e:
-                error_msg = f"Brave Search API error: {str(e)}"
-                if self.use_mem0:
-                    self.update_memory("last_error", error_msg)
-                return []
+                self.update_memory("last_error", error_msg)
+            return []
 
 # --- Inline Tests (if no tests dir available) ---
 import unittest

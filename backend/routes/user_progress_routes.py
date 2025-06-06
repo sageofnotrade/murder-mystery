@@ -5,9 +5,9 @@ Provides comprehensive endpoints for progress management, achievements, and anal
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from services.user_progress_service import UserProgressService
-from services.supabase_service import get_supabase_client
-from models.user_progress_models import (
+from backend.services.user_progress_service import UserProgressService
+from backend.services.supabase_service import get_supabase_client
+from backend.models.user_progress_models import (
     SaveProgressRequest, LoadProgressRequest, BackupProgressRequest,
     RestoreProgressRequest, AchievementType, ProgressError
 )
@@ -24,39 +24,39 @@ def get_progress_service():
     """Get a UserProgressService instance with the current Supabase client."""
     return UserProgressService(get_supabase_client())
 
-@user_progress_bp.route('/api/progress', methods=['GET'])
+@user_progress_bp.route('/progress', methods=['GET'])
 @jwt_required()
-async def get_user_progress():
+def get_user_progress():
     """Get complete user progress including all mysteries and achievements."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
     
     try:
         include_details = request.args.get('include_details', 'true').lower() == 'true'
-        user_progress = await progress_service.get_user_progress(user_id, include_mystery_details=include_details)
+        user_progress = progress_service.get_user_progress(user_id, include_mystery_details=include_details)
         
         return jsonify(user_progress.model_dump())
     except Exception as e:
         logger.error(f"Error getting user progress for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/summary', methods=['GET'])
+@user_progress_bp.route('/progress/summary', methods=['GET'])
 @jwt_required()
-async def get_progress_summary():
+def get_progress_summary():
     """Get summary of user's overall progress."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
     
     try:
-        summary = await progress_service.get_progress_summary(user_id)
+        summary = progress_service.get_progress_summary(user_id)
         return jsonify(summary.model_dump())
     except Exception as e:
         logger.error(f"Error getting progress summary for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/save', methods=['POST'])
+@user_progress_bp.route('/progress/save', methods=['POST'])
 @jwt_required()
-async def save_progress():
+def save_progress():
     """Save user progress for a specific mystery."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
@@ -70,7 +70,7 @@ async def save_progress():
         save_request = SaveProgressRequest(**data)
         
         # Save progress
-        result = await progress_service.save_progress(user_id, save_request)
+        result = progress_service.save_progress(user_id, save_request)
         
         return jsonify(result.model_dump()), 201
     except ValidationError as e:
@@ -79,9 +79,9 @@ async def save_progress():
         logger.error(f"Error saving progress for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/load', methods=['POST'])
+@user_progress_bp.route('/progress/load', methods=['POST'])
 @jwt_required()
-async def load_progress():
+def load_progress():
     """Load user progress for a specific mystery or overall progress."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
@@ -95,7 +95,7 @@ async def load_progress():
         load_request = LoadProgressRequest(**data)
         
         # Load progress
-        result = await progress_service.load_progress(user_id, load_request)
+        result = progress_service.load_progress(user_id, load_request)
         
         return jsonify(result.model_dump())
     except ValidationError as e:
@@ -104,15 +104,15 @@ async def load_progress():
         logger.error(f"Error loading progress for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/mystery/<mystery_id>', methods=['GET'])
+@user_progress_bp.route('/progress/mystery/<mystery_id>', methods=['GET'])
 @jwt_required()
-async def get_mystery_progress(mystery_id):
+def get_mystery_progress(mystery_id):
     """Get progress for a specific mystery."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
     
     try:
-        mystery_progress = await progress_service.get_mystery_progress(user_id, mystery_id)
+        mystery_progress = progress_service.get_mystery_progress(user_id, mystery_id)
         
         if not mystery_progress:
             return jsonify({'error': 'Mystery progress not found'}), 404
@@ -122,15 +122,15 @@ async def get_mystery_progress(mystery_id):
         logger.error(f"Error getting mystery progress for {user_id}, mystery {mystery_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/mystery/<mystery_id>', methods=['POST'])
+@user_progress_bp.route('/progress/mystery/<mystery_id>', methods=['POST'])
 @jwt_required()
-async def create_mystery_progress(mystery_id):
+def create_mystery_progress(mystery_id):
     """Create new progress tracking for a mystery."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
     
     try:
-        mystery_progress = await progress_service.create_mystery_progress(user_id, mystery_id)
+        mystery_progress = progress_service.create_mystery_progress(user_id, mystery_id)
         return jsonify(mystery_progress.model_dump()), 201
     except ValueError as e:
         return jsonify({'error': str(e)}), 404
@@ -138,15 +138,15 @@ async def create_mystery_progress(mystery_id):
         logger.error(f"Error creating mystery progress for {user_id}, mystery {mystery_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/mystery/<mystery_id>/checkpoints', methods=['GET'])
+@user_progress_bp.route('/progress/mystery/<mystery_id>/checkpoints', methods=['GET'])
 @jwt_required()
-async def get_mystery_checkpoints(mystery_id):
+def get_mystery_checkpoints(mystery_id):
     """Get available checkpoints for a mystery."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
     
     try:
-        mystery_progress = await progress_service.get_mystery_progress(user_id, mystery_id)
+        mystery_progress = progress_service.get_mystery_progress(user_id, mystery_id)
         
         if not mystery_progress:
             return jsonify({'error': 'Mystery progress not found'}), 404
@@ -171,9 +171,9 @@ async def get_mystery_checkpoints(mystery_id):
         logger.error(f"Error getting checkpoints for {user_id}, mystery {mystery_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/mystery/<mystery_id>/checkpoints/<checkpoint_name>', methods=['GET'])
+@user_progress_bp.route('/progress/mystery/<mystery_id>/checkpoints/<checkpoint_name>', methods=['GET'])
 @jwt_required()
-async def load_checkpoint(mystery_id, checkpoint_name):
+def load_checkpoint(mystery_id, checkpoint_name):
     """Load a specific checkpoint for a mystery."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
@@ -184,7 +184,7 @@ async def load_checkpoint(mystery_id, checkpoint_name):
             checkpoint_name=checkpoint_name
         )
         
-        result = await progress_service.load_progress(user_id, load_request)
+        result = progress_service.load_progress(user_id, load_request)
         
         if not result.mystery_progress:
             return jsonify({'error': 'Checkpoint not found'}), 404
@@ -194,15 +194,15 @@ async def load_checkpoint(mystery_id, checkpoint_name):
         logger.error(f"Error loading checkpoint {checkpoint_name} for {user_id}, mystery {mystery_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/achievements', methods=['GET'])
+@user_progress_bp.route('/progress/achievements', methods=['GET'])
 @jwt_required()
-async def get_achievements():
+def get_achievements():
     """Get user's achievements."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
     
     try:
-        user_progress = await progress_service.get_user_progress(user_id, include_mystery_details=False)
+        user_progress = progress_service.get_user_progress(user_id, include_mystery_details=False)
         
         return jsonify({
             'achievements': [achievement.model_dump() for achievement in user_progress.achievements],
@@ -213,9 +213,9 @@ async def get_achievements():
         logger.error(f"Error getting achievements for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/achievements/<achievement_type>', methods=['POST'])
+@user_progress_bp.route('/progress/achievements/<achievement_type>', methods=['POST'])
 @jwt_required()
-async def award_achievement(achievement_type):
+def award_achievement(achievement_type):
     """Award an achievement to the user."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
@@ -230,7 +230,7 @@ async def award_achievement(achievement_type):
         data = request.get_json() or {}
         mystery_id = data.get('mystery_id')
         
-        achievement = await progress_service.award_achievement(user_id, achievement_enum, mystery_id)
+        achievement = progress_service.award_achievement(user_id, achievement_enum, mystery_id)
         
         return jsonify({
             'achievement': achievement.model_dump(),
@@ -240,35 +240,35 @@ async def award_achievement(achievement_type):
         logger.error(f"Error awarding achievement {achievement_type} to {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/statistics', methods=['GET'])
+@user_progress_bp.route('/progress/statistics', methods=['GET'])
 @jwt_required()
-async def get_statistics():
+def get_statistics():
     """Get user's game statistics."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
     
     try:
-        user_progress = await progress_service.get_user_progress(user_id, include_mystery_details=False)
+        user_progress = progress_service.get_user_progress(user_id, include_mystery_details=False)
         
         return jsonify(user_progress.statistics.model_dump())
     except Exception as e:
         logger.error(f"Error getting statistics for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/current-mystery', methods=['GET'])
+@user_progress_bp.route('/progress/current-mystery', methods=['GET'])
 @jwt_required()
-async def get_current_mystery():
+def get_current_mystery():
     """Get the user's current mystery progress."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
     
     try:
-        user_progress = await progress_service.get_user_progress(user_id, include_mystery_details=False)
+        user_progress = progress_service.get_user_progress(user_id, include_mystery_details=False)
         
         if not user_progress.current_mystery_id:
             return jsonify({'error': 'No current mystery'}), 404
         
-        mystery_progress = await progress_service.get_mystery_progress(user_id, user_progress.current_mystery_id)
+        mystery_progress = progress_service.get_mystery_progress(user_id, user_progress.current_mystery_id)
         
         if not mystery_progress:
             return jsonify({'error': 'Current mystery progress not found'}), 404
@@ -278,9 +278,9 @@ async def get_current_mystery():
         logger.error(f"Error getting current mystery for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/current-mystery', methods=['PUT'])
+@user_progress_bp.route('/progress/current-mystery', methods=['PUT'])
 @jwt_required()
-async def set_current_mystery():
+def set_current_mystery():
     """Set the user's current mystery."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
@@ -293,13 +293,13 @@ async def set_current_mystery():
         mystery_id = data['mystery_id']
         
         # Verify mystery exists and user has access
-        mystery_progress = await progress_service.get_mystery_progress(user_id, mystery_id)
+        mystery_progress = progress_service.get_mystery_progress(user_id, mystery_id)
         if not mystery_progress:
             # Create new progress if doesn't exist
-            mystery_progress = await progress_service.create_mystery_progress(user_id, mystery_id)
+            mystery_progress = progress_service.create_mystery_progress(user_id, mystery_id)
         
         # Update current mystery
-        await progress_service.update_current_mystery(user_id, mystery_id)
+        progress_service.update_current_mystery(user_id, mystery_id)
         
         return jsonify({
             'current_mystery_id': mystery_id,
@@ -309,9 +309,9 @@ async def set_current_mystery():
         logger.error(f"Error setting current mystery for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/backup', methods=['POST'])
+@user_progress_bp.route('/progress/backup', methods=['POST'])
 @jwt_required()
-async def create_backup():
+def create_backup():
     """Create a backup of user progress."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
@@ -333,15 +333,15 @@ async def create_backup():
         logger.error(f"Error creating backup for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/analytics', methods=['GET'])
+@user_progress_bp.route('/progress/analytics', methods=['GET'])
 @jwt_required()
-async def get_analytics():
+def get_analytics():
     """Get analytics data for user progress."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()
     
     try:
-        user_progress = await progress_service.get_user_progress(user_id)
+        user_progress = progress_service.get_user_progress(user_id)
         
         # Calculate analytics
         total_mysteries = len(user_progress.mystery_progress)
@@ -384,9 +384,9 @@ async def get_analytics():
         logger.error(f"Error getting analytics for {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@user_progress_bp.route('/api/progress/reset', methods=['POST'])
+@user_progress_bp.route('/progress/reset', methods=['POST'])
 @jwt_required()
-async def reset_progress():
+def reset_progress():
     """Reset user progress (with confirmation)."""
     user_id = get_jwt_identity()
     progress_service = get_progress_service()

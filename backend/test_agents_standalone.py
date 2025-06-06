@@ -27,13 +27,13 @@ def test_mock_infrastructure():
         assert response.choices[0].message.content == "Test response"
         
         print("✅ Mock infrastructure test passed")
-        return True
+        return
     except Exception as e:
         print(f"❌ Mock infrastructure test failed: {e}")
         print(f"   Current working directory: {os.getcwd()}")
         print(f"   Python path: {sys.path[:3]}...")
         traceback.print_exc()
-        return False
+        assert False
 
 def test_models_import():
     """Test that our models can be imported."""
@@ -75,11 +75,11 @@ def test_models_import():
         assert template.title == "Test Mystery"
         
         print("✅ Models import test passed")
-        return True
+        return
     except Exception as e:
         print(f"❌ Models import test failed: {e}")
         traceback.print_exc()
-        return False
+        assert False
 
 def test_agent_mocks():
     """Test agent-specific mocks without importing actual agents."""
@@ -110,11 +110,11 @@ def test_agent_mocks():
         assert clue_data["significance"] == 9
         
         print("✅ Agent mocks test passed")
-        return True
+        return
     except Exception as e:
         print(f"❌ Agent mocks test failed: {e}")
         traceback.print_exc()
-        return False
+        assert False
 
 def test_basic_python_environment():
     """Test basic Python environment and dependencies."""
@@ -135,13 +135,13 @@ def test_basic_python_environment():
             print("     ✓ Pydantic available")
         except ImportError:
             print("     ✗ Pydantic not available")
-            return False
+            assert False
             
         print("✅ Python environment test passed")
-        return True
+        return
     except Exception as e:
         print(f"❌ Python environment test failed: {e}")
-        return False
+        assert False
 
 def run_standalone_tests():
     """Run all standalone tests."""

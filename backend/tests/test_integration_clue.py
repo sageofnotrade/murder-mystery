@@ -1,10 +1,10 @@
+# NOTE: Uses global app/client fixtures from conftest.py. Do not import create_app or define app/client fixtures here.
 """
 Integration tests for clue management (frontend-backend).
 Covers happy path, edge, and failure cases.
 """
 import pytest
 from unittest.mock import patch
-from backend.app import create_app
 from backend.tests.mocks.supabase_mock import MockSupabaseClient
 
 @pytest.fixture(scope="module")

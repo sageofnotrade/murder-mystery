@@ -9,7 +9,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from supabase import Client
-from models.user_progress_models import (
+from backend.models.user_progress_models import (
     UserProgress, MysteryProgress, GameStatistics, Achievement,
     ProgressStatus, AchievementType, DifficultyLevel,
     SaveProgressRequest, LoadProgressRequest, SaveProgressResponse, LoadProgressResponse,
@@ -24,7 +24,7 @@ class UserProgressService:
     def __init__(self, supabase_client: Client):
         self.supabase = supabase_client
     
-    async def get_user_progress(self, user_id: str, include_mystery_details: bool = True) -> UserProgress:
+    def get_user_progress(self, user_id: str, include_mystery_details: bool = True) -> UserProgress:
         """Get complete user progress."""
         try:
             # Get main user progress record
@@ -32,7 +32,7 @@ class UserProgressService:
             
             if not progress_response.data:
                 # Create new progress record if doesn't exist
-                return await self.create_user_progress(user_id)
+                return self.create_user_progress(user_id)
             
             progress_data = progress_response.data[0]
             
@@ -91,7 +91,7 @@ class UserProgressService:
             logger.error(f"Error getting user progress for {user_id}: {str(e)}")
             raise
 
-    async def create_user_progress(self, user_id: str, username: Optional[str] = None) -> UserProgress:
+    def create_user_progress(self, user_id: str, username: Optional[str] = None) -> UserProgress:
         """Create new user progress record."""
         try:
             now = datetime.utcnow()
@@ -125,18 +125,18 @@ class UserProgressService:
             logger.error(f"Error creating user progress for {user_id}: {str(e)}")
             raise
 
-    async def save_progress(self, user_id: str, request: SaveProgressRequest) -> SaveProgressResponse:
+    def save_progress(self, user_id: str, request: SaveProgressRequest) -> SaveProgressResponse:
         """Save user progress for a specific mystery."""
         try:
             save_id = str(uuid.uuid4())
             timestamp = datetime.utcnow()
             
             # Get current mystery progress or create new
-            mystery_progress = await self.get_mystery_progress(user_id, request.mystery_id)
+            mystery_progress = self.get_mystery_progress(user_id, request.mystery_id)
             
             if not mystery_progress:
                 # Create new mystery progress
-                mystery_progress = await self.create_mystery_progress(user_id, request.mystery_id)
+                mystery_progress = self.create_mystery_progress(user_id, request.mystery_id)
             
             # Update progress data
             mystery_progress.save_data.update(request.progress_data)
@@ -159,10 +159,10 @@ class UserProgressService:
                 }
             
             # Update in database
-            await self.update_mystery_progress(mystery_progress)
+            self.update_mystery_progress(mystery_progress)
             
             # Update user's overall progress
-            await self.update_user_last_played(user_id, timestamp)
+            self.update_user_last_played(user_id, timestamp)
             
             return SaveProgressResponse(
                 success=True,
@@ -177,11 +177,11 @@ class UserProgressService:
             logger.error(f"Error saving progress for user {user_id}: {str(e)}")
             raise
 
-    async def load_progress(self, user_id: str, request: LoadProgressRequest) -> LoadProgressResponse:
+    def load_progress(self, user_id: str, request: LoadProgressRequest) -> LoadProgressResponse:
         """Load user progress."""
         try:
             # Get overall user progress
-            user_progress = await self.get_user_progress(user_id, include_mystery_details=False)
+            user_progress = self.get_user_progress(user_id, include_mystery_details=False)
             
             mystery_progress = None
             available_checkpoints = []
@@ -189,7 +189,7 @@ class UserProgressService:
             
             # Get specific mystery progress if requested
             if request.mystery_id:
-                mystery_progress = await self.get_mystery_progress(user_id, request.mystery_id)
+                mystery_progress = self.get_mystery_progress(user_id, request.mystery_id)
                 
                 if mystery_progress:
                     # Get available checkpoints
@@ -221,7 +221,7 @@ class UserProgressService:
             logger.error(f"Error loading progress for user {user_id}: {str(e)}")
             raise
 
-    async def get_mystery_progress(self, user_id: str, mystery_id: str) -> Optional[MysteryProgress]:
+    def get_mystery_progress(self, user_id: str, mystery_id: str) -> Optional[MysteryProgress]:
         """Get progress for a specific mystery."""
         try:
             response = self.supabase.table('mystery_progress').select('*').eq('user_id', user_id).eq('mystery_id', mystery_id).execute()
@@ -261,7 +261,7 @@ class UserProgressService:
             logger.error(f"Error getting mystery progress for {user_id}, mystery {mystery_id}: {str(e)}")
             raise
 
-    async def create_mystery_progress(self, user_id: str, mystery_id: str) -> MysteryProgress:
+    def create_mystery_progress(self, user_id: str, mystery_id: str) -> MysteryProgress:
         """Create new mystery progress record."""
         try:
             # Get mystery details
@@ -313,7 +313,7 @@ class UserProgressService:
             self.supabase.table('mystery_progress').insert(progress_record).execute()
             
             # Update user's current mystery
-            await self.update_current_mystery(user_id, mystery_id)
+            self.update_current_mystery(user_id, mystery_id)
             
             return progress
             
@@ -321,7 +321,7 @@ class UserProgressService:
             logger.error(f"Error creating mystery progress for {user_id}, mystery {mystery_id}: {str(e)}")
             raise
 
-    async def update_mystery_progress(self, progress: MysteryProgress) -> None:
+    def update_mystery_progress(self, progress: MysteryProgress) -> None:
         """Update mystery progress in database."""
         try:
             update_data = {
@@ -351,10 +351,10 @@ class UserProgressService:
             logger.error(f"Error updating mystery progress for {progress.mystery_id}: {str(e)}")
             raise
 
-    async def get_progress_summary(self, user_id: str) -> ProgressSummaryResponse:
+    def get_progress_summary(self, user_id: str) -> ProgressSummaryResponse:
         """Get summary of user's progress."""
         try:
-            user_progress = await self.get_user_progress(user_id)
+            user_progress = self.get_user_progress(user_id)
             
             # Calculate derived metrics
             total_mysteries = len(user_progress.mystery_progress)
@@ -387,11 +387,11 @@ class UserProgressService:
             logger.error(f"Error getting progress summary for {user_id}: {str(e)}")
             raise
 
-    async def award_achievement(self, user_id: str, achievement_type: AchievementType, mystery_id: Optional[str] = None) -> Achievement:
+    def award_achievement(self, user_id: str, achievement_type: AchievementType, mystery_id: Optional[str] = None) -> Achievement:
         """Award an achievement to the user."""
         try:
             # Check if user already has this achievement
-            user_progress = await self.get_user_progress(user_id, include_mystery_details=False)
+            user_progress = self.get_user_progress(user_id, include_mystery_details=False)
             
             existing_achievement = next((a for a in user_progress.achievements if a.type == achievement_type), None)
             if existing_achievement:
@@ -415,7 +415,7 @@ class UserProgressService:
             user_progress.achievement_points += achievement.points
             
             # Save to database
-            await self.update_user_achievements(user_id, user_progress.achievements, user_progress.achievement_points)
+            self.update_user_achievements(user_id, user_progress.achievements, user_progress.achievement_points)
             
             return achievement
             
@@ -423,7 +423,7 @@ class UserProgressService:
             logger.error(f"Error awarding achievement {achievement_type} to {user_id}: {str(e)}")
             raise
 
-    async def update_current_mystery(self, user_id: str, mystery_id: str) -> None:
+    def update_current_mystery(self, user_id: str, mystery_id: str) -> None:
         """Update the user's current mystery."""
         try:
             self.supabase.table('user_progress').update({
@@ -435,11 +435,11 @@ class UserProgressService:
             logger.error(f"Error updating current mystery for {user_id}: {str(e)}")
             raise
 
-    async def update_user_last_played(self, user_id: str, timestamp: datetime) -> None:
+    def update_user_last_played(self, user_id: str, timestamp: datetime) -> None:
         """Update the user's last played timestamp."""
         try:
             # Get current statistics
-            user_progress = await self.get_user_progress(user_id, include_mystery_details=False)
+            user_progress = self.get_user_progress(user_id, include_mystery_details=False)
             user_progress.statistics.last_played = timestamp
             
             # Update in database
@@ -452,7 +452,7 @@ class UserProgressService:
             logger.error(f"Error updating last played for {user_id}: {str(e)}")
             raise
 
-    async def update_user_achievements(self, user_id: str, achievements: List[Achievement], total_points: int) -> None:
+    def update_user_achievements(self, user_id: str, achievements: List[Achievement], total_points: int) -> None:
         """Update user achievements in database."""
         try:
             achievements_data = [achievement.model_dump() for achievement in achievements]
