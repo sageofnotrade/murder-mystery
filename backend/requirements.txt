@@ -1,24 +1,40 @@
+# Core dependencies
 flask==2.3.3
 flask-cors==4.0.0
 flask-jwt-extended==4.7.1
-python-dotenv==1.0.0
-supabase>=2.15.2
-redis==5.0.1
-pydantic>=2.7.3,<3.0.0
-pydantic-ai-slim>=0.2.15
-mem0ai==0.1.0
-pytest>=8.2,<9.0.0
-pytest-flask==1.3.0
-pytest-timeout==2.1.0
-pytest-xdist==3.3.1
 gunicorn==21.2.0
-requests==2.31.0
-pytest-cov==4.1.0
 werkzeug==2.3.7
 click>=8.1.3
 itsdangerous>=2.1.2
 Jinja2>=3.1.2
 MarkupSafe>=2.1.3
-PyJWT>=2.0,<3.0
 blinker>=1.6.2
-anthropic
+
+# Environment and HTTP
+python-dotenv==1.0.0
+requests>=2.28.0
+
+# Supabase and Redis
+supabase>=2.15.2
+redis==5.0.1
+
+# Authentication
+PyJWT>=2.0,<3.0
+
+# AI & Language Models
+openai>=1.0.0
+anthropic>=0.5.0
+mistralai>=0.0.7
+pydantic-ai[openai,anthropic,mistral,logfire]>=0.1.0
+pydantic-ai-slim>=0.2.15
+mem0ai==0.1.0
+
+# Pydantic (Core schema validation)
+pydantic>=2.7.3,<3.0.0
+
+# Testing
+pytest>=8.2,<9.0.0
+pytest-flask==1.3.0
+pytest-timeout==2.1.0
+pytest-xdist==3.3.1
+pytest-cov>=4.1.0
