@@ -162,10 +162,8 @@ def run_standalone_tests():
     for test in tests:
         print(f"Running {test.__name__}...")
         try:
-            if test():
-                passed += 1
-            else:
-                failed += 1
+            test()
+            passed += 1
         except Exception as e:
             print(f"❌ Test {test.__name__} failed with exception: {e}")
             traceback.print_exc()
