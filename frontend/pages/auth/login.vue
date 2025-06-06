@@ -54,13 +54,12 @@
 <script setup>
 import { ref } from 'vue'
 
-const { $supabase } = useNuxtApp()
-
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref(null)
-const supabase = $supabase
+const supabase = useNuxtApp().$supabase
+
 
 const handleLogin = async () => {
   try {
