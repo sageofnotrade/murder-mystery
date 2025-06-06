@@ -21,6 +21,7 @@ def pytest_configure(config):
 @pytest.fixture(autouse=True)
 def setup_test_env():
     """Set up test environment variables."""
+    # update values here
     os.environ['FLASK_ENV'] = 'testing'
     os.environ['SUPABASE_URL'] = 'https://test.supabase.co'
     os.environ['SUPABASE_KEY'] = 'test-key'

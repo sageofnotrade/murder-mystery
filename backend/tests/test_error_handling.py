@@ -1,3 +1,5 @@
+# when executed, will encounter AssertionError: assert 422 == 404
+
 import pytest
 import json
 import logging
