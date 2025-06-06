@@ -1,6 +1,7 @@
 {
   "devDependencies": {
-    "@types/node": "^22.15.29"
+    "@types/node": "^22.15.29",
+    "vue-tsc": "^2.2.10"
   },
   "dependencies": {
     "h3": "^1.15.3",
