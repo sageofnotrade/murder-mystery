@@ -3,10 +3,14 @@ import { defineNuxtConfig } from 'nuxt/config'
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
-  plugins: ['~/plugins/lucide.client.ts'],
+  plugins: [
+    '~/plugins/lucide.client.ts',
+    '~/plugins/persistedstate.client.ts'
+  ],
   modules: [
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
+  
   ],
   typescript: {
     strict: true,

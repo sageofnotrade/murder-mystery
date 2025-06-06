@@ -20,11 +20,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useSupabaseClient } from '#imports'
+const { $supabase } = useNuxtApp()
 
 const loading = ref(true)
 const error = ref(null)
-const supabase = useSupabaseClient()
+const supabase = $supabase
 
 onMounted(async () => {
   try {
