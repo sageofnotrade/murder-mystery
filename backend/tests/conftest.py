@@ -2,7 +2,7 @@ import pytest
 import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from flask import Flask
+from flask import Flask, Response
 from backend.tests.mocks.supabase_mock import MockSupabaseClient
 from backend.tests.mocks.redis_mock import MockRedisClient
 import sys
@@ -84,4 +84,11 @@ def auth_headers():
     """Generate auth headers for testing protected endpoints."""
     return {
         'Authorization': 'Bearer mock-jwt-token'
-    } 
+    }
+
+@pytest.fixture(autouse=True)
+def add_json_property_to_response(monkeypatch):
+    def json_property(self):
+        from flask import json
+        return json.loads(self.get_data(as_text=True))
+    monkeypatch.setattr(Response, "json", property(json_property)) 
