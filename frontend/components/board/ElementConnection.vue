@@ -32,27 +32,26 @@
     <g
       v-if="midpoint"
       @click.stop="emit('delete', connection.id)"
-      style="cursor: pointer;"
+      class="delete-connection-group"
     >
+      <title>Delete connection</title>
       <circle
         :cx="midpoint.x"
         :cy="midpoint.y"
         r="12"
-        fill="#fff"
-        stroke="#d33"
-        stroke-width="2"
+        class="delete-connection-circle"
       />
       <text
         :x="midpoint.x"
         :y="midpoint.y + 4"
         text-anchor="middle"
         font-size="14"
-        fill="#d33"
-        style="pointer-events: none;"
+        class="delete-connection-text"
       >
         ×
       </text>
     </g>
+
     
     <defs>
       <filter :id="glowFilterId" x="-30%" y="-30%" width="160%" height="160%">
@@ -164,4 +163,36 @@ if (!import.meta.env.SSR) {
   position: absolute;
   pointer-events: none;
 }
+.delete-connection-group {
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+}
+.delete-connection-group:hover {
+  transform: scale(1.15);
+}
+
+.delete-connection-circle {
+  fill: #fff;
+  stroke: #d33;
+  stroke-width: 2;
+  transition: fill 0.2s, stroke 0.2s;
+}
+
+.delete-connection-group:hover .delete-connection-circle {
+  fill: #ffe5e5;
+  stroke: #a00;
+}
+
+.delete-connection-text {
+  fill: #d33;
+  font-weight: bold;
+  pointer-events: none;
+  user-select: none;
+  transition: fill 0.2s;
+}
+
+.delete-connection-group:hover .delete-connection-text {
+  fill: #a00;
+}
+
 </style> 

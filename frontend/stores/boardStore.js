@@ -43,7 +43,8 @@ export const useBoardStore = defineStore('board', {
     },
     addElement(element) {
       this.pushHistory();
-      this.elements.push({ ...element, id: Date.now() });
+      this.elements.push({ ...element }); // 🔥 keep the ID from the caller
+
     },
     updateElement(updated) {
       this.pushHistory();
