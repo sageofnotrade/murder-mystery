@@ -1,89 +1,67 @@
 # Murþrą Database Schema
 
-This directory contains the database schema and initialization scripts for the Murþrą application.
+This directory contains the database schema, migration, and backup scripts for the Murþrą application.
 
 ## Schema Overview
 
-### Tables
+(unchanged...)
 
-1. **profiles**
-   - Stores user profiles and psychological traits
-   - Links to Supabase auth.users
-   - Fields:
-     - `id`: UUID (Primary Key)
-     - `user_id`: UUID (Foreign Key to auth.users)
-     - `psychological_traits`: JSONB (User's psychological profile)
-     - `preferences`: JSONB (User preferences)
-     - `play_history`: JSONB (Game history)
+## Backup & Restore
 
-2. **mystery_templates**
-   - Stores templates for different types of mysteries
-   - Fields:
-     - `id`: UUID (Primary Key)
-     - `title`: TEXT
-     - `description`: TEXT
-     - `difficulty`: TEXT (easy/medium/hard)
-     - `structure`: JSONB (Template structure)
-     - `is_public`: BOOLEAN
+### Postgres (Supabase)
 
-3. **mysteries**
-   - Stores user's active mysteries
-   - Fields:
-     - `id`: UUID (Primary Key)
-     - `user_id`: UUID (Foreign Key to auth.users)
-     - `template_id`: UUID (Foreign Key to mystery_templates)
-     - `title`: TEXT
-     - `state`: JSONB (Current game state)
-     - `is_completed`: BOOLEAN
+#### Backup
+To back up all user data tables:
+```bash
+cd backend/db
+./backup_postgres.sh "<PG_URI>" ./backups
+```
+- Replace `<PG_URI>` with your Postgres connection string.
+- Backups are saved as one file per table, timestamped.
 
-4. **stories**
-   - Stores narrative progression
-   - Fields:
-     - `id`: UUID (Primary Key)
-     - `mystery_id`: UUID (Foreign Key to mysteries)
-     - `current_scene`: TEXT
-     - `narrative_history`: JSONB
-     - `discovered_clues`: JSONB
-     - `suspect_states`: JSONB
+#### Restore
+To restore from backup files:
+```bash
+cd backend/db
+./restore_postgres.sh "<PG_URI>" ./backups
+```
+- Restores all tables from the specified backup directory.
 
-5. **boards**
-   - Stores visual board state
-   - Fields:
-     - `id`: UUID (Primary Key)
-     - `mystery_id`: UUID (Foreign Key to mysteries)
-     - `elements`: JSONB (Board elements)
-     - `connections`: JSONB (Element connections)
-     - `notes`: JSONB (User notes)
-     - `layout`: JSONB (Board layout)
+### Redis (Cache)
 
-## Security
+#### Backup
+To back up all relevant Redis keys (story, board, LLM cache):
+```bash
+cd backend/db
+python backup_redis.py <REDIS_URL> redis_backup.json
+```
+- Default `REDIS_URL` is `redis://localhost:6379/0` if not provided.
+- Output is a JSON file with all relevant keys/values.
 
-All tables have Row Level Security (RLS) policies that ensure:
-- Users can only access their own data
-- Users can only modify their own data
-- Proper cascading deletes when users are removed
+#### Restore
+To restore Redis from a backup file:
+```bash
+cd backend/db
+python restore_redis.py <REDIS_URL> redis_backup.json
+```
 
-## Automatic Updates
+### Automation
+- For regular backups, schedule these scripts via cron or CI (see below for a sample cron job):
 
-All tables have:
-- `created_at`: Automatically set on creation
-- `updated_at`: Automatically updated on modification
+#### Example cron (Linux):
+```
+0 2 * * * cd /path/to/backend/db && ./backup_postgres.sh "$PG_URI" /path/to/backups
+0 3 * * * cd /path/to/backend/db && python backup_redis.py $REDIS_URL /path/to/redis_backups/redis_backup_$(date +\%Y\%m\%d).json
+```
+
+### Recovery Steps
+- For disaster recovery, restore Postgres first, then Redis cache if needed.
+- Always test restores on staging before production.
 
 ## Usage
 
-1. Initialize the database:
-   ```bash
-   python db/init_db.py
-   ```
-
-2. View the schema:
-   ```bash
-   cat db/schema.sql
-   ```
+(unchanged...)
 
 ## Notes
 
-- All timestamps are in UTC
-- JSONB is used for flexible schema fields
-- UUIDs are used for all IDs
-- Foreign keys have ON DELETE CASCADE where appropriate 
+(unchanged...)

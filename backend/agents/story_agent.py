@@ -4,6 +4,15 @@ Enhanced with PydanticAI for better type safety and agent capabilities.
 Uses ModelRouter to select appropriate models for different tasks:
 - deepseek-r1t-chimera for reasoning/analysis
 - mistral-nemo for writing/narrative
+
+# Prompt/Model Strategy (2024-06-08):
+# - System prompts are explicit, structured, and role-specific.
+# - All LLM completions use ModelRouter:
+#     - 'reasoning' (deepseek-r1t-chimera) for planning/analysis
+#     - 'writing' (mistral-nemo) for narrative generation
+# - Parameters tuned: temperature=0.3 for planning, 0.7 for narrative; max_tokens set per step.
+# - Prompts include context, player profile, and clear output format instructions.
+# - Inline comments explain prompt structure and model routing choices.
 """
 
 from .base_agent import BaseAgent
@@ -49,7 +58,7 @@ class PlayerProfile(BaseModel):
         default_factory=create_default_profile
     )
     preferences: Dict[str, str] = Field(default_factory=dict)
-    role: str = "detective"  # Can be "detective", "suspect", "witness", etc.
+    role: str = ""  # Can be "detective", "suspect", "witness", etc.
 
 class StoryAgentInput(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -361,48 +370,57 @@ class StoryAgent(BaseAgent):
             return StoryAgentOutput(narrative=narrative, story_state=story_state).model_dump()
 
     def start_new_story(self, template: dict, player_profile: dict) -> dict:
-        """Start a new story based on the template and player profile."""
-        # Convert player profile to include psychological profile
+        """Start a new story based on a template and player profile.
+        Args:
+            template (dict): The mystery template
+            player_profile (dict): The player's psychological profile
+        Returns:
+            dict: The initial story state (StoryState)
+        """
+        import json  # for memory storage if used
+
+        # Ensure psychological profile is included and parsed
         if isinstance(player_profile, dict):
             if "psychological_profile" not in player_profile:
                 player_profile["psychological_profile"] = create_default_profile()
             else:
                 player_profile["psychological_profile"] = PsychologicalProfile(**player_profile["psychological_profile"])
-        
-        # Get psychological adaptations
-        adaptations = player_profile.get("psychological_profile", create_default_profile()).get_narrative_adaptations()
-        
-        # Create initial story state
+        parsed_profile = PlayerProfile(**player_profile) if isinstance(player_profile, dict) else player_profile
+
+        # Optional: Store in memory
+        if self.use_mem0:
+            self.update_memory("template", json.dumps(template))
+            self.update_memory("player_profile", json.dumps(player_profile))
+
+        # Choose initial scene based on role
+        role_to_scene = {
+            "suspect": "suspect_introduction",
+            "witness": "witness_introduction",
+        }
+        initial_scene = role_to_scene.get(parsed_profile.role, "introduction")
+
+        # Build suspect states
+        suspect_states = {}
+        for suspect in template.get("suspects", []):
+            suspect_id = suspect.get("id") or suspect.get("name")
+            is_player = parsed_profile.role == "suspect" and suspect.get("is_player", False)
+            suspect_states[suspect_id] = SuspectState(
+                name=suspect.get("name", "Unknown"),
+                suspicious_level=0 if is_player else suspect.get("initial_suspicion", 0)
+            )
+
+        # Initialize story state
         story_state = StoryState(
             template_id=template.get("id"),
             title=template.get("title", "Untitled Mystery"),
-            current_scene="introduction"
+            current_scene=initial_scene,
+            narrative_history=[],
+            discovered_clues=[],
+            suspect_states=suspect_states
         )
-        
-        # Generate initial narrative with psychological adaptations
-        prompt = f"""
-        Generate an introduction for a mystery story based on:
-        
-        Template: {json.dumps(template, indent=2)}
-        Player Profile: {json.dumps(player_profile, indent=2)}
-        
-        Psychological Adaptations:
-        {json.dumps(adaptations, indent=2)}
-        
-        Requirements:
-        1. Set the tone based on the player's psychological profile
-        2. Introduce the mystery in a way that matches the player's cognitive style
-        3. Adjust emotional content based on the player's emotional tendency
-        4. Match the narrative pace to the player's social style
-        """
-        
-        try:
-            narrative = self._llm_generate_story(prompt, {"template": template, "player_profile": player_profile})
-            story_state.narrative_history.append(narrative)
-            return {"narrative": narrative, "story_state": story_state.dict()}
-        except Exception as e:
-            print(f"Error starting new story: {str(e)}")
-            return {"narrative": "The story begins...", "story_state": story_state.dict()}
+
+        # Return the clean, initialized story state
+        return story_state.model_dump()
 
     def generate_story(self, prompt: str, context: dict = None) -> StoryAgentGenerateOutput:
         """
