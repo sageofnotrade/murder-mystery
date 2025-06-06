@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
 from typing import Dict, Any
+import logging
 
 from backend.agents.models.template_models import MysteryTemplate
 from backend.services.template_service import TemplateService
 
 template_bp = Blueprint('templates', __name__)
 template_service = TemplateService()
+logger = logging.getLogger(__name__)
 
 @template_bp.route('', methods=['GET'])
 def get_all_templates():
@@ -61,21 +63,13 @@ def create_template():
         # Save to database
         created_template = template_service.create_template(template)
         
-        return jsonify({
-            'success': True,
-            'template': created_template.model_dump()
-        }), 201
+        return jsonify({'data': created_template.model_dump(), 'error': None}), 201
     except ValidationError as e:
-        return jsonify({
-            'success': False,
-            'error': 'Validation error',
-            'details': e.errors()
-        }), 400
+        logger.error(f'ERROR in create_template: {e}')
+        return jsonify({'data': None, 'error': 'Validation error', 'details': e.errors()}), 400
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        logger.error(f'ERROR in create_template: {e}')
+        return jsonify({'data': None, 'error': str(e)}), 500
 
 @template_bp.route('/<template_id>', methods=['PUT'])
 def update_template(template_id: str):

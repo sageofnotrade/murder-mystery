@@ -4,10 +4,20 @@ from datetime import datetime
 from supabase import Client
 from backend.agents.models.story_models import StoryState
 from backend.agents.models.clue_models import ClueCreate, ClueDetail, ClueConnection, ClueAnalysisRequest
+from .base_service import BaseService
+from utils.error_handlers import (
+    APIError, ValidationError, ResourceNotFoundError,
+    AuthenticationError, AuthorizationError
+)
+import json
+import logging
+import uuid
 
-class ClueService:
+logger = logging.getLogger(__name__)
+
+class ClueService(BaseService):
     def __init__(self, supabase: Client):
-        self.supabase = supabase
+        super().__init__(supabase)
 
     async def discover_clue(self, story_id: UUID, template_clue_id: UUID, 
                           discovery_method: str, discovery_location: str) -> Dict[str, Any]:
@@ -52,14 +62,23 @@ class ClueService:
     async def get_story_clues(self, story_id: UUID) -> List[Dict[str, Any]]:
         """Get all clues for a story."""
         try:
+            self.log_operation("get_story_clues", {"story_id": story_id})
+            
+            # Validate user has access to story
+            story = self.supabase.table('stories').select('*').eq('id', story_id).execute()
+            if not story.data:
+                raise AuthorizationError("User does not have access to this story")
+            
             result = await self.supabase.table('story_clues').select('*, template_clues(*)').eq('story_id', str(story_id)).execute()
             return result.data
         except Exception as e:
-            raise ValueError(f"Error getting story clues: {str(e)}")
+            self.handle_service_error(e, "get_story_clues")
 
     async def update_clue_notes(self, clue_id: UUID, notes: str) -> Dict[str, Any]:
         """Update notes for a discovered clue."""
         try:
+            self.log_operation("update_clue_notes", {"clue_id": clue_id, "notes": notes})
+            
             result = await self.supabase.table('story_clues').update({
                 'notes': notes
             }).eq('id', str(clue_id)).execute()
@@ -69,12 +88,14 @@ class ClueService:
             
             return result.data[0]
         except Exception as e:
-            raise ValueError(f"Error updating clue notes: {str(e)}")
+            self.handle_service_error(e, "update_clue_notes")
 
     async def add_clue_connection(self, clue_id: UUID, connected_clue_id: UUID, 
                                 connection_type: str, connection_details: Dict[str, Any]) -> Dict[str, Any]:
         """Add a connection between two clues."""
         try:
+            self.log_operation("add_clue_connection", {"clue_id": clue_id, "connected_clue_id": connected_clue_id, "connection_type": connection_type, "connection_details": connection_details})
+            
             # Get current connections
             clue = await self.supabase.table('story_clues').select('connections').eq('id', str(clue_id)).single().execute()
             if not clue.data:
@@ -101,11 +122,13 @@ class ClueService:
 
             return result.data[0]
         except Exception as e:
-            raise ValueError(f"Error adding clue connection: {str(e)}")
+            self.handle_service_error(e, "add_clue_connection")
 
     async def update_clue_relevance(self, clue_id: UUID, relevance_score: float) -> Dict[str, Any]:
         """Update the relevance score of a clue."""
         try:
+            self.log_operation("update_clue_relevance", {"clue_id": clue_id, "relevance_score": relevance_score})
+            
             if not 0 <= relevance_score <= 1:
                 raise ValueError("Relevance score must be between 0 and 1")
 
@@ -118,22 +141,26 @@ class ClueService:
 
             return result.data[0]
         except Exception as e:
-            raise ValueError(f"Error updating clue relevance: {str(e)}")
+            self.handle_service_error(e, "update_clue_relevance")
 
     async def get_clue_connections(self, clue_id: UUID) -> List[Dict[str, Any]]:
         """Get all connections for a specific clue."""
         try:
+            self.log_operation("get_clue_connections", {"clue_id": clue_id})
+            
             clue = await self.supabase.table('story_clues').select('connections').eq('id', str(clue_id)).single().execute()
             if not clue.data:
                 raise ValueError(f"Clue {clue_id} not found")
 
             return clue.data.get('connections', [])
         except Exception as e:
-            raise ValueError(f"Error getting clue connections: {str(e)}")
+            self.handle_service_error(e, "get_clue_connections")
 
     async def mark_clue_as_red_herring(self, clue_id: UUID, is_red_herring: bool) -> Dict[str, Any]:
         """Mark a clue as a red herring or not."""
         try:
+            self.log_operation("mark_clue_as_red_herring", {"clue_id": clue_id, "is_red_herring": is_red_herring})
+            
             result = await self.supabase.table('story_clues').update({
                 'is_red_herring': is_red_herring
             }).eq('id', str(clue_id)).execute()
@@ -143,7 +170,7 @@ class ClueService:
 
             return result.data[0]
         except Exception as e:
-            raise ValueError(f"Error updating red herring status: {str(e)}")
+            self.handle_service_error(e, "mark_clue_as_red_herring")
 
     async def discover_clue(self, story_id: str, user_id: str, clue_data: ClueCreate) -> ClueDetail:
         """Discover a new clue in the story."""
@@ -309,4 +336,195 @@ class ClueService:
             .update({'connections': [conn['id'] for conn in result.data]})\
             .eq('story_id', story_id)\
             .eq('id', clue_id)\
-            .execute() 
+            .execute()
+
+    def get_clues(self, story_id: str, user_id: str) -> List[Dict[str, Any]]:
+        """Get all clues for a story."""
+        try:
+            self.log_operation("get_clues", {"story_id": story_id, "user_id": user_id})
+            
+            # Validate user has access to story
+            story = self.supabase.table('stories').select('*').eq('id', story_id).eq('user_id', user_id).execute()
+            if not story.data:
+                raise AuthorizationError("User does not have access to this story")
+            
+            # Get clues
+            clues = self.supabase.table('clues').select('*').eq('story_id', story_id).execute()
+            return clues.data
+            
+        except Exception as e:
+            self.handle_service_error(e, "get_clues")
+    
+    def get_clue(self, clue_id: str, story_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get a specific clue."""
+        try:
+            self.log_operation("get_clue", {
+                "clue_id": clue_id,
+                "story_id": story_id,
+                "user_id": user_id
+            })
+            
+            # Validate user has access to story
+            story = self.supabase.table('stories').select('*').eq('id', story_id).eq('user_id', user_id).execute()
+            if not story.data:
+                raise AuthorizationError("User does not have access to this story")
+            
+            # Get clue
+            clue = self.supabase.table('clues').select('*').eq('id', clue_id).eq('story_id', story_id).execute()
+            if not clue.data:
+                raise ResourceNotFoundError(f"Clue {clue_id} not found")
+            
+            return clue.data[0]
+            
+        except Exception as e:
+            self.handle_service_error(e, "get_clue")
+    
+    def create_clue(self, story_id: str, user_id: str, clue_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new clue."""
+        try:
+            self.log_operation("create_clue", {
+                "story_id": story_id,
+                "user_id": user_id,
+                "clue_data": clue_data
+            })
+            
+            # Validate user has access to story
+            story = self.supabase.table('stories').select('*').eq('id', story_id).eq('user_id', user_id).execute()
+            if not story.data:
+                raise AuthorizationError("User does not have access to this story")
+            
+            # Validate required fields
+            self.validate_required_fields(
+                clue_data,
+                ["title", "description", "type", "location"]
+            )
+            
+            # Add metadata
+            clue_data.update({
+                'id': str(uuid.uuid4()),
+                'story_id': story_id,
+                'created_at': datetime.utcnow().isoformat(),
+                'updated_at': datetime.utcnow().isoformat()
+            })
+            
+            # Create clue
+            result = self.supabase.table('clues').insert(clue_data).execute()
+            if not result.data:
+                raise APIError("Failed to create clue")
+            
+            return result.data[0]
+            
+        except Exception as e:
+            self.handle_service_error(e, "create_clue")
+    
+    def update_clue(self, clue_id: str, story_id: str, user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Update an existing clue."""
+        try:
+            self.log_operation("update_clue", {
+                "clue_id": clue_id,
+                "story_id": story_id,
+                "user_id": user_id,
+                "updates": updates
+            })
+            
+            # Verify clue exists and user has access
+            clue = self.get_clue(clue_id, story_id, user_id)
+            if not clue:
+                raise ResourceNotFoundError(f"Clue {clue_id} not found")
+            
+            # Add update timestamp
+            updates['updated_at'] = datetime.utcnow().isoformat()
+            
+            # Update clue
+            result = self.supabase.table('clues').update(updates).eq('id', clue_id).execute()
+            if not result.data:
+                raise APIError("Failed to update clue")
+            
+            return result.data[0]
+            
+        except Exception as e:
+            self.handle_service_error(e, "update_clue")
+    
+    def delete_clue(self, clue_id: str, story_id: str, user_id: str) -> None:
+        """Delete a clue."""
+        try:
+            self.log_operation("delete_clue", {
+                "clue_id": clue_id,
+                "story_id": story_id,
+                "user_id": user_id
+            })
+            
+            # Verify clue exists and user has access
+            clue = self.get_clue(clue_id, story_id, user_id)
+            if not clue:
+                raise ResourceNotFoundError(f"Clue {clue_id} not found")
+            
+            # Delete clue
+            result = self.supabase.table('clues').delete().eq('id', clue_id).execute()
+            if not result.data:
+                raise APIError("Failed to delete clue")
+            
+        except Exception as e:
+            self.handle_service_error(e, "delete_clue")
+    
+    def link_clue_to_suspect(self, clue_id: str, suspect_id: str, story_id: str, 
+                            user_id: str, relationship: str) -> Dict[str, Any]:
+        """Link a clue to a suspect."""
+        try:
+            self.log_operation("link_clue_to_suspect", {
+                "clue_id": clue_id,
+                "suspect_id": suspect_id,
+                "story_id": story_id,
+                "user_id": user_id,
+                "relationship": relationship
+            })
+            
+            # Verify clue exists and user has access
+            clue = self.get_clue(clue_id, story_id, user_id)
+            if not clue:
+                raise ResourceNotFoundError(f"Clue {clue_id} not found")
+            
+            # Verify suspect exists
+            suspect = self.supabase.table('suspects').select('*').eq('id', suspect_id).eq('story_id', story_id).execute()
+            if not suspect.data:
+                raise ResourceNotFoundError(f"Suspect {suspect_id} not found")
+            
+            # Create relationship
+            relationship_data = {
+                'id': str(uuid.uuid4()),
+                'clue_id': clue_id,
+                'suspect_id': suspect_id,
+                'story_id': story_id,
+                'relationship': relationship,
+                'created_at': datetime.utcnow().isoformat()
+            }
+            
+            result = self.supabase.table('clue_suspect_relationships').insert(relationship_data).execute()
+            if not result.data:
+                raise APIError("Failed to link clue to suspect")
+            
+            return result.data[0]
+            
+        except Exception as e:
+            self.handle_service_error(e, "link_clue_to_suspect")
+    
+    def get_clue_relationships(self, clue_id: str, story_id: str, user_id: str) -> List[Dict[str, Any]]:
+        """Get all relationships for a clue."""
+        try:
+            self.log_operation("get_clue_relationships", {
+                "clue_id": clue_id,
+                "story_id": story_id,
+                "user_id": user_id
+            })
+            
+            # Verify clue exists and user has access
+            clue = self.get_clue(clue_id, story_id, user_id)
+            if not clue:
+                raise ResourceNotFoundError(f"Clue {clue_id} not found")
+            
+            # Get relationships
+            relationships = self.supabase.table('clue_suspect_relationships').select('*').eq('clue_id', clue_id).execute()
+            return relationships.data
+            
+        except Exception as e:
+            self.handle_service_error(e, "get_clue_relationships") 

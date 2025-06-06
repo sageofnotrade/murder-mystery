@@ -3,6 +3,7 @@ from uuid import UUID
 from backend.services.clue_service import ClueService
 from supabase import create_client, Client
 import os
+import logging
 
 clue_bp = Blueprint('clue', __name__)
 
@@ -14,6 +15,8 @@ supabase: Client = create_client(
 
 # Initialize clue service
 clue_service = ClueService(supabase)
+
+logger = logging.getLogger(__name__)
 
 @clue_bp.route('/stories/<story_id>/clues', methods=['GET'])
 async def get_story_clues(story_id: str):
@@ -34,10 +37,7 @@ async def discover_clue(story_id: str):
         required_fields = ['template_clue_id', 'discovery_method', 'discovery_location']
         
         if not all(field in data for field in required_fields):
-            return jsonify({
-                'error': 'Missing required fields',
-                'required': required_fields
-            }), 400
+            return jsonify({'data': None, 'error': 'Missing required fields', 'required': required_fields}), 400
 
         clue = await clue_service.discover_clue(
             UUID(story_id),
@@ -45,11 +45,13 @@ async def discover_clue(story_id: str):
             data['discovery_method'],
             data['discovery_location']
         )
-        return jsonify(clue), 201
+        return jsonify({'data': clue, 'error': None}), 201
     except ValueError as e:
-        return jsonify({'error': str(e)}), 404
+        logger.error(f'ERROR in discover_clue: {e}')
+        return jsonify({'data': None, 'error': str(e)}), 404
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f'ERROR in discover_clue: {e}')
+        return jsonify({'data': None, 'error': str(e)}), 500
 
 @clue_bp.route('/clues/<clue_id>/notes', methods=['PUT'])
 async def update_clue_notes(clue_id: str):

@@ -1,9 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from backend.services.suspect_service import SuspectService
-from backend.services.supabase_service import get_supabase_client
-from backend.agents.suspect_agent import SuspectState, SuspectProfile
-from pydantic import ValidationError
+from services.suspect_service import SuspectService
+from services.supabase_service import get_supabase_client
+from agents.suspect_agent import SuspectState, SuspectProfile
+from utils.error_handlers import (
+    APIError, ValidationError, ResourceNotFoundError,
+    AuthenticationError, AuthorizationError
+)
 import logging
 
 # Configure logging
@@ -15,135 +18,119 @@ def get_suspect_service():
     """Get a SuspectService instance with the current Supabase client."""
     return SuspectService(get_supabase_client())
 
-@suspect_bp.route('/api/suspects', methods=['GET'])
+@suspect_bp.route('/suspects', methods=['GET'])
 @jwt_required()
-async def get_suspects():
-    """Get all suspects for the current user/story."""
-    user_id = get_jwt_identity()
-    story_id = request.args.get('story_id')
-    
-    if not story_id:
-        return jsonify({'error': 'story_id parameter is required'}), 400
-    
-    suspect_service = get_suspect_service()
-    
+def get_suspects():
+    """Get all suspects for a story."""
     try:
-        suspects = await suspect_service.get_story_suspects(story_id, user_id)
+        story_id = request.args.get('story_id')
+        if not story_id:
+            raise ValidationError("story_id is required")
+            
+        user_id = get_jwt_identity()
+        service = get_suspect_service()
+        suspects = service.get_suspects(story_id, user_id)
+        
+        if not suspects:
+            raise ResourceNotFoundError(f"No suspects found for story {story_id}")
+            
         return jsonify(suspects)
+        
+    except APIError as e:
+        raise e
     except Exception as e:
         logger.error(f"Error getting suspects: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        raise APIError("Failed to retrieve suspects")
 
-@suspect_bp.route('/api/suspects/<suspect_id>', methods=['GET'])
+@suspect_bp.route('/suspects/<suspect_id>', methods=['GET'])
 @jwt_required()
-async def get_suspect(suspect_id):
-    """Get a specific suspect profile."""
-    user_id = get_jwt_identity()
-    story_id = request.args.get('story_id')
-    
-    if not story_id:
-        return jsonify({'error': 'story_id parameter is required'}), 400
-    
-    suspect_service = get_suspect_service()
-    
+def get_suspect(suspect_id):
+    """Get a specific suspect's profile."""
     try:
-        suspect = await suspect_service.get_suspect_profile(suspect_id, story_id, user_id)
-        if not suspect:
-            return jsonify({'error': 'Suspect not found'}), 404
+        story_id = request.args.get('story_id')
+        if not story_id:
+            raise ValidationError("story_id is required")
+            
+        user_id = get_jwt_identity()
+        service = get_suspect_service()
+        suspect = service.get_suspect_profile(suspect_id, story_id, user_id)
         
+        if not suspect:
+            raise ResourceNotFoundError(f"Suspect {suspect_id} not found")
+            
         return jsonify(suspect)
+        
+    except APIError as e:
+        raise e
     except Exception as e:
         logger.error(f"Error getting suspect {suspect_id}: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        raise APIError("Failed to retrieve suspect profile")
 
-@suspect_bp.route('/api/suspects', methods=['POST'])
+@suspect_bp.route('/suspects/<suspect_id>/dialogue', methods=['POST'])
 @jwt_required()
-async def create_suspect():
-    """Create a new suspect."""
-    user_id = get_jwt_identity()
-    suspect_service = get_suspect_service()
-    
+def generate_dialogue(suspect_id):
+    """Generate dialogue with a suspect."""
     try:
         data = request.get_json()
         if not data:
-            return jsonify({'error': 'Request body is required'}), 400
-        
-        suspect = await suspect_service.create_suspect(user_id, data)
-        return jsonify(suspect), 201
-    except ValidationError as e:
-        return jsonify({'error': 'Invalid suspect data', 'details': e.errors()}), 400
-    except Exception as e:
-        logger.error(f"Error creating suspect: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@suspect_bp.route('/api/suspects/<suspect_id>/dialogue', methods=['POST'])
-@jwt_required()
-async def post_dialogue(suspect_id):
-    """Post dialogue and get suspect response."""
-    user_id = get_jwt_identity()
-    suspect_service = get_suspect_service()
-    
-    try:
-        data = request.get_json()
-        if not data or 'question' not in data:
-            return jsonify({'error': 'Question is required in request body'}), 400
-        
-        question = data['question']
+            raise ValidationError("Request body is required")
+            
+        question = data.get('question')
         story_id = data.get('story_id')
         context = data.get('context', {})
         
-        if not story_id:
-            return jsonify({'error': 'story_id is required'}), 400
+        if not all([question, story_id]):
+            raise ValidationError("question and story_id are required")
+            
+        user_id = get_jwt_identity()
+        service = get_suspect_service()
         
-        # Verify user has access to this suspect/story
-        suspect_profile = await suspect_service.get_suspect_profile(suspect_id, story_id, user_id)
-        if not suspect_profile:
-            return jsonify({'error': 'Suspect not found or access denied'}), 404
+        # Verify suspect exists
+        suspect = service.get_suspect_profile(suspect_id, story_id, user_id)
+        if not suspect:
+            raise ResourceNotFoundError(f"Suspect {suspect_id} not found")
+            
+        response = service.generate_dialogue(suspect_id, question, story_id, user_id, context)
+        return jsonify(response)
         
-        # Generate dialogue response
-        dialogue_result = await suspect_service.generate_dialogue(
-            suspect_id, question, story_id, user_id, context
-        )
-        
-        return jsonify(dialogue_result)
-    except ValidationError as e:
-        return jsonify({'error': 'Invalid request data', 'details': e.errors()}), 400
+    except APIError as e:
+        raise e
     except Exception as e:
-        logger.error(f"Error posting dialogue to suspect {suspect_id}: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error generating dialogue for suspect {suspect_id}: {str(e)}")
+        raise APIError("Failed to generate dialogue")
 
-@suspect_bp.route('/api/suspects/<suspect_id>/verify-alibi', methods=['POST'])
+@suspect_bp.route('/suspects/<suspect_id>/verify-alibi', methods=['POST'])
 @jwt_required()
-async def verify_alibi(suspect_id):
-    """Verify suspect alibi."""
-    user_id = get_jwt_identity()
-    suspect_service = get_suspect_service()
-    
+def verify_alibi(suspect_id):
+    """Verify a suspect's alibi."""
     try:
         data = request.get_json()
-        if not data or 'story_id' not in data:
-            return jsonify({'error': 'story_id is required'}), 400
-        
-        story_id = data['story_id']
-        alibi_details = data.get('alibi_details', {})
+        if not data:
+            raise ValidationError("Request body is required")
+            
+        story_id = data.get('story_id')
+        alibi_details = data.get('alibi_details')
         evidence = data.get('evidence', [])
         
-        # Verify user has access to this suspect/story
-        suspect_profile = await suspect_service.get_suspect_profile(suspect_id, story_id, user_id)
-        if not suspect_profile:
-            return jsonify({'error': 'Suspect not found or access denied'}), 404
+        if not all([story_id, alibi_details]):
+            raise ValidationError("story_id and alibi_details are required")
+            
+        user_id = get_jwt_identity()
+        service = get_suspect_service()
         
-        # Verify alibi
-        verification_result = await suspect_service.verify_alibi(
-            suspect_id, story_id, user_id, alibi_details, evidence
-        )
+        # Verify suspect exists
+        suspect = service.get_suspect_profile(suspect_id, story_id, user_id)
+        if not suspect:
+            raise ResourceNotFoundError(f"Suspect {suspect_id} not found")
+            
+        result = service.verify_alibi(suspect_id, story_id, user_id, alibi_details, evidence)
+        return jsonify(result)
         
-        return jsonify(verification_result)
-    except ValidationError as e:
-        return jsonify({'error': 'Invalid verification data', 'details': e.errors()}), 400
+    except APIError as e:
+        raise e
     except Exception as e:
         logger.error(f"Error verifying alibi for suspect {suspect_id}: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        raise APIError("Failed to verify alibi")
 
 @suspect_bp.route('/api/suspects/<suspect_id>/state', methods=['GET'])
 @jwt_required()

@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from flask import Flask
-from backend.app import app as flask_app
+from backend.app import create_app
 from backend.tests.mocks.supabase_mock import MockSupabaseClient
 from backend.tests.mocks.redis_mock import MockRedisClient
 
@@ -12,7 +12,7 @@ pytest_plugins = ('pytest_asyncio',)
 
 def pytest_configure(config):
     # Patch Supabase client at the module level
-    patch('supabase._sync.client.create_client', return_value=MagicMock()).start()
+    patch('supabase.client.create_client', return_value=MagicMock()).start()
     # Patch Redis client at the module level
     patch('redis.Redis', return_value=MagicMock()).start()
     config.option.asyncio_mode = "auto"
@@ -38,14 +38,14 @@ def setup_test_env():
 
 @pytest.fixture(autouse=True)
 def patch_supabase_create_client():
-    with patch('supabase._sync.client.create_client', return_value=MagicMock()):
+    with patch('supabase.client.create_client', return_value=MagicMock()):
         yield 
 
 @pytest.fixture
 def app():
     """Provide the Flask app instance for testing."""
-    with flask_app.app_context():
-        yield flask_app
+    with create_app().app_context():
+        yield create_app()
 
 @pytest.fixture
 def client(app):
