@@ -4,6 +4,15 @@ Enhanced with PydanticAI for better type safety and agent capabilities.
 Uses ModelRouter to select appropriate models for different tasks:
 - deepseek-r1t-chimera for reasoning/analysis
 - mistral-nemo for writing/narrative
+
+# Prompt/Model Strategy (2024-06-08):
+# - System prompts are explicit, structured, and role-specific.
+# - All LLM completions use ModelRouter:
+#     - 'reasoning' (deepseek-r1t-chimera) for planning/analysis
+#     - 'writing' (mistral-nemo) for narrative generation
+# - Parameters tuned: temperature=0.3 for planning, 0.7 for narrative; max_tokens set per step.
+# - Prompts include context, player profile, and clear output format instructions.
+# - Inline comments explain prompt structure and model routing choices.
 """
 
 from .base_agent import BaseAgent
@@ -49,7 +58,7 @@ class PlayerProfile(BaseModel):
         default_factory=create_default_profile
     )
     preferences: Dict[str, str] = Field(default_factory=dict)
-    role: str = "detective"  # Can be "detective", "suspect", "witness", etc.
+    role: str = ""  # Can be "detective", "suspect", "witness", etc.
 
 class StoryAgentInput(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -361,48 +370,57 @@ class StoryAgent(BaseAgent):
             return StoryAgentOutput(narrative=narrative, story_state=story_state).model_dump()
 
     def start_new_story(self, template: dict, player_profile: dict) -> dict:
-        """Start a new story based on the template and player profile."""
-        # Convert player profile to include psychological profile
+        """Start a new story based on a template and player profile.
+        Args:
+            template (dict): The mystery template
+            player_profile (dict): The player's psychological profile
+        Returns:
+            dict: The initial story state (StoryState)
+        """
+        import json  # for memory storage if used
+
+        # Ensure psychological profile is included and parsed
         if isinstance(player_profile, dict):
             if "psychological_profile" not in player_profile:
                 player_profile["psychological_profile"] = create_default_profile()
             else:
                 player_profile["psychological_profile"] = PsychologicalProfile(**player_profile["psychological_profile"])
-        
-        # Get psychological adaptations
-        adaptations = player_profile.get("psychological_profile", create_default_profile()).get_narrative_adaptations()
-        
-        # Create initial story state
+        parsed_profile = PlayerProfile(**player_profile) if isinstance(player_profile, dict) else player_profile
+
+        # Optional: Store in memory
+        if self.use_mem0:
+            self.update_memory("template", json.dumps(template))
+            self.update_memory("player_profile", json.dumps(player_profile))
+
+        # Choose initial scene based on role
+        role_to_scene = {
+            "suspect": "suspect_introduction",
+            "witness": "witness_introduction",
+        }
+        initial_scene = role_to_scene.get(parsed_profile.role, "introduction")
+
+        # Build suspect states
+        suspect_states = {}
+        for suspect in template.get("suspects", []):
+            suspect_id = suspect.get("id") or suspect.get("name")
+            is_player = parsed_profile.role == "suspect" and suspect.get("is_player", False)
+            suspect_states[suspect_id] = SuspectState(
+                name=suspect.get("name", "Unknown"),
+                suspicious_level=0 if is_player else suspect.get("initial_suspicion", 0)
+            )
+
+        # Initialize story state
         story_state = StoryState(
             template_id=template.get("id"),
             title=template.get("title", "Untitled Mystery"),
-            current_scene="introduction"
+            current_scene=initial_scene,
+            narrative_history=[],
+            discovered_clues=[],
+            suspect_states=suspect_states
         )
-        
-        # Generate initial narrative with psychological adaptations
-        prompt = f"""
-        Generate an introduction for a mystery story based on:
-        
-        Template: {json.dumps(template, indent=2)}
-        Player Profile: {json.dumps(player_profile, indent=2)}
-        
-        Psychological Adaptations:
-        {json.dumps(adaptations, indent=2)}
-        
-        Requirements:
-        1. Set the tone based on the player's psychological profile
-        2. Introduce the mystery in a way that matches the player's cognitive style
-        3. Adjust emotional content based on the player's emotional tendency
-        4. Match the narrative pace to the player's social style
-        """
-        
-        try:
-            narrative = self._llm_generate_story(prompt, {"template": template, "player_profile": player_profile})
-            story_state.narrative_history.append(narrative)
-            return {"narrative": narrative, "story_state": story_state.dict()}
-        except Exception as e:
-            print(f"Error starting new story: {str(e)}")
-            return {"narrative": "The story begins...", "story_state": story_state.dict()}
+
+        # Return the clean, initialized story state
+        return story_state.model_dump()
 
     def generate_story(self, prompt: str, context: dict = None) -> StoryAgentGenerateOutput:
         """
@@ -957,87 +975,52 @@ class StoryAgent(BaseAgent):
     def _brave_search(self, query: str) -> list[dict]:
         """
         Query the Brave Search API and return a list of results.
-        Uses PydanticAI's common tools if available, otherwise falls back to direct API calls.
+        Uses direct API call only (removes pydantic_ai BraveSearch dependency).
         """
-        # Try using PydanticAI's common tools for search
+        # Fallback: Direct API call
+        import os
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        api_key = os.getenv("BRAVE_API_KEY")
+
+        if not api_key:
+            if self.use_mem0:
+                self.update_memory("last_error", "Missing Brave API key")
+            return []
+
+        url = "https://api.search.brave.com/res/v1/web/search"
+        headers = {"Accept": "application/json", "X-Subscription-Token": api_key}
+        params = {"q": query, "count": 5, "freshness": "month"}
+
         try:
-            # The import path might vary depending on the PydanticAI version
-            from pydantic_ai.common_tools import BraveSearch
-
-            # Create a Brave Search tool
-            brave_search = BraveSearch()
-
-            # Perform the search
-            search_results = brave_search.search(query=query, count=5)
+            resp = requests.get(url, headers=headers, params=params, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
 
             # Store the search response in memory if tracking is enabled
             if self.use_mem0 and self.mem0_config.get("track_performance", True):
                 self.update_memory("last_search_query", query)
-                self.update_memory("last_search_count", str(len(search_results)))
-                self.update_memory("search_method", "pydantic_ai_brave_search")
+                self.update_memory("last_search_count", str(len(data.get("web", {}).get("results", []))))
+                self.update_memory("search_method", "direct_brave_api")
 
-            # Convert to our expected format
             results = [
                 {
-                    "title": r.title,
-                    "url": r.url,
-                    "snippet": r.description,
-                    "source": r.source if hasattr(r, "source") else ""
+                    "title": r["title"],
+                    "url": r["url"],
+                    "snippet": r.get("description", ""),
+                    "source": r.get("source", "")
                 }
-                for r in search_results
+                for r in data.get("web", {}).get("results", [])
             ]
 
             return results
 
-        except Exception as e:
-            # Log the error but continue with the fallback method
+        except requests.RequestException as e:
+            error_msg = f"Brave Search API error: {str(e)}"
             if self.use_mem0:
-                self.update_memory("brave_search_pydantic_ai_error", str(e))
-
-            # Fallback: Direct API call
-            import os
-            from dotenv import load_dotenv
-
-            load_dotenv()
-            api_key = os.getenv("BRAVE_API_KEY")
-
-            if not api_key:
-                if self.use_mem0:
-                    self.update_memory("last_error", "Missing Brave API key")
-                return []
-
-            url = "https://api.search.brave.com/res/v1/web/search"
-            headers = {"Accept": "application/json", "X-Subscription-Token": api_key}
-            params = {"q": query, "count": 5, "freshness": "month"}
-
-            try:
-                resp = requests.get(url, headers=headers, params=params, timeout=10)
-                resp.raise_for_status()
-                data = resp.json()
-
-                # Store the search response in memory if tracking is enabled
-                if self.use_mem0 and self.mem0_config.get("track_performance", True):
-                    self.update_memory("last_search_query", query)
-                    self.update_memory("last_search_count", str(len(data.get("web", {}).get("results", []))))
-                    self.update_memory("search_method", "direct_brave_api")
-
-                results = [
-                    {
-                        "title": r["title"],
-                        "url": r["url"],
-                        "snippet": r.get("description", ""),
-                        "source": r.get("source", "")
-                    }
-                    for r in data.get("web", {}).get("results", [])
-                ]
-
-                return results
-
-            except requests.RequestException as e:
-                error_msg = f"Brave Search API error: {str(e)}"
-                if self.use_mem0:
-                    self.update_memory("last_error", error_msg)
-                return []
+                self.update_memory("last_error", error_msg)
+            return []
 
 # --- Inline Tests (if no tests dir available) ---
 import unittest

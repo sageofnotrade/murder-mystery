@@ -3,12 +3,13 @@ import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from flask import Flask
-from backend.app import app as flask_app
 from backend.tests.mocks.supabase_mock import MockSupabaseClient
 from backend.tests.mocks.redis_mock import MockRedisClient
+import sys
+import types
 
 # Configure pytest-asyncio
-pytest_plugins = ('pytest_asyncio',)
+# pytest_plugins = ('pytest_asyncio',)  # Moved to project root conftest.py
 
 def pytest_configure(config):
     # Patch Supabase client at the module level
@@ -43,14 +44,25 @@ def patch_supabase_create_client():
 
 @pytest.fixture
 def app():
-    """Provide the Flask app instance for testing."""
-    with flask_app.app_context():
-        yield flask_app
+    """Provide the Flask app instance and the patched mock for testing."""
+    from unittest.mock import patch
+    with patch('backend.routes.user_progress_routes.UserProgressService') as mock_service, \
+         patch('backend.routes.user_progress_routes.jwt_required', lambda f: (print('jwt_required patched'), f)[1]), \
+         patch('backend.routes.user_progress_routes.get_jwt_identity', lambda: 'user-123'):
+        # Import create_app only after patching is active
+        from backend.app import create_app
+        app = create_app()
+        with app.app_context():
+            print('\nREGISTERED ROUTES:')
+            for rule in app.url_map.iter_rules():
+                print(rule)
+            yield app, mock_service
 
 @pytest.fixture
 def client(app):
-    """A test client for the app."""
-    return app.test_client()
+    """A test client for the app, and the mock service."""
+    app_instance, mock_service = app
+    return app_instance.test_client(), mock_service
 
 @pytest.fixture
 def runner(app):

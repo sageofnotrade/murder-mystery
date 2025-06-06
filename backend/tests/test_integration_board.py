@@ -1,27 +1,12 @@
+# NOTE: Uses global app/client fixtures from conftest.py. Do not import create_app or define app/client fixtures here.
 """
 Integration tests for board state sync (frontend-backend).
 Covers happy path, edge, and failure cases.
 """
 import pytest
 from unittest.mock import patch
-from backend.app import create_app
 from backend.tests.mocks.redis_mock import MockRedisClient
 from flask_jwt_extended import create_access_token
-
-@pytest.fixture(scope="module")
-def app():
-    config = {
-        "TESTING": True,
-        "JWT_SECRET_KEY": "test",
-        "JWT_TOKEN_LOCATION": ["headers"],
-        "JWT_ACCESS_TOKEN_EXPIRES": False,
-        "JWT_HEADER_NAME": "Authorization",
-        "JWT_HEADER_TYPE": "Bearer",
-        # Add any other JWT settings your app expects
-    }
-    with patch("backend.routes.board_state_routes.redis_client", new_callable=lambda: MockRedisClient()):
-        app = create_app(config)
-        yield app
 
 @pytest.fixture
 def client(app):

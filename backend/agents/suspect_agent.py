@@ -5,6 +5,15 @@ Enhanced with PydanticAI for better type safety and agent capabilities.
 Uses ModelRouter to select appropriate models for different tasks:
 - deepseek-r1t-chimera for reasoning/analysis
 - mistral-nemo for writing/narrative
+
+# Prompt/Model Strategy (2024-06-08):
+# - System prompts are explicit, structured, and role-specific.
+# - All LLM completions use ModelRouter:
+#     - 'reasoning' (deepseek-r1t-chimera) for planning/analysis
+#     - 'writing' (mistral-nemo) for dialogue/profile generation
+# - Parameters tuned: temperature=0.3 for planning, 0.7 for narrative; max_tokens set per step.
+# - Prompts include context, player profile, and clear output format instructions.
+# - Inline comments explain prompt structure and model routing choices.
 """
 
 from .base_agent import BaseAgent
@@ -106,11 +115,14 @@ class SuspectAgentDependencies:
 
 class SuspectAgent(BaseAgent):
     """Agent responsible for suspect profile generation, dialogue, and behavior."""
-    def __init__(self, memory=None, use_mem0=True, user_id=None, mem0_config=None):
+    def __init__(self, memory=None, use_mem0=True, user_id=None, mem0_config=None, model_message_cls=None):
         super().__init__("SuspectAgent", memory, use_mem0=use_mem0, user_id=user_id, mem0_config=mem0_config)
 
         # Initialize ModelRouter for intelligent model selection
         self.model_router = ModelRouter()
+
+        # Allow injection of ModelMessage class for testability
+        self.model_message_cls = model_message_cls or ModelMessage
 
         # Initialize PydanticAI agent
         self.pydantic_agent = self._create_pydantic_agent()
@@ -356,8 +368,8 @@ class SuspectAgent(BaseAgent):
         )
 
         planning_messages = [
-            ModelMessage(role="system", content=planning_system_prompt),
-            ModelMessage(role="user", content=planning_user_prompt)
+            self.model_message_cls(role="system", content=planning_system_prompt),
+            self.model_message_cls(role="user", content=planning_user_prompt)
         ]
 
         try:
@@ -400,8 +412,8 @@ class SuspectAgent(BaseAgent):
             )
 
             writing_messages = [
-                ModelMessage(role="system", content=writing_system_prompt),
-                ModelMessage(role="user", content=writing_user_prompt)
+                self.model_message_cls(role="system", content=writing_system_prompt),
+                self.model_message_cls(role="user", content=writing_user_prompt)
             ]
 
             # Generate the profile using the writing model
@@ -419,6 +431,7 @@ class SuspectAgent(BaseAgent):
 
             # Extract the generated profile
             profile_text = writing_response.content
+            print("[DEBUG] SuspectAgent writing_response.content:", repr(profile_text))
 
             if not profile_text:
                 if self.use_mem0:
@@ -433,6 +446,7 @@ class SuspectAgent(BaseAgent):
             try:
                 # Try to parse as JSON first
                 profile_dict = json.loads(profile_text)
+                print("[DEBUG] SuspectAgent parsed profile_dict:", profile_dict)
                 return SuspectProfile(**profile_dict)
             except json.JSONDecodeError:
                 # If not JSON, try to extract structured information from text
@@ -508,54 +522,163 @@ class SuspectAgent(BaseAgent):
             )
 
     def _llm_generate_dialogue(self, question: str, suspect_state: SuspectState, context: dict) -> SuspectDialogueOutput:
-        """Generate dialogue for a suspect based on the question and their current state."""
-        # Get psychological adaptations
-        player_profile = context.get("player_profile", create_default_profile())
-        adaptations = player_profile.get_dialogue_adaptations()
+        import json
+        from pydantic_ai.messages import ModelMessage
         
-        # Create prompt with psychological adaptations
-        prompt = f"""
-        Generate suspect dialogue based on:
+        # Extract player profile and adaptations from context (new feature)
+        player_profile = context.get("player_profile", None)
+        if player_profile:
+            adaptations = player_profile.get_dialogue_adaptations()
+            adaptations_str = json.dumps(adaptations, indent=2)
+            cognitive_style = getattr(player_profile, "cognitive_style", None)
+        else:
+            adaptations_str = "{}"
+            cognitive_style = None
+
+        # Format context and suspect state for prompts
+        context_str = json.dumps(context, indent=2) if context else "{}"
+        suspect_state_str = json.dumps(suspect_state.model_dump(), indent=2)
         
-        Question: {question}
-        Suspect State: {json.dumps(suspect_state.dict(), indent=2)}
+        if not self.model_router.api_key:
+            if self.use_mem0:
+                self.update_memory("last_error", "Missing LLM API key")
+            updated_state = suspect_state.model_copy()
+            updated_state.interviewed = True
+            return SuspectDialogueOutput(
+                dialogue=f"\"I don't know anything about that,\" {suspect_state.name} says nervously.",
+                updated_state=updated_state
+            )
         
-        Psychological Adaptations:
-        {json.dumps(adaptations, indent=2)}
+        # Planning prompt includes psychological adaptations (added from new)
+        planning_system_prompt = (
+            "You are an expert in criminal psychology and suspect behavior. "
+            "Analyze the suspect's profile, state, the question, and the player's psychological profile and dialogue adaptations. "
+            "Plan how the suspect would realistically respond based on their psychology, knowledge, emotional state, and player's cognitive and emotional style."
+        )
         
-        Requirements:
-        1. Adapt dialogue style based on player's psychological profile
-        2. Consider player's cognitive style for information presentation
-        3. Adjust emotional content based on player's emotional tendency
-        4. Match interaction pace to player's social style
-        5. Maintain suspect's personality and emotional state
-        """
+        planning_user_prompt = (
+            f"Plan a dialogue response for suspect {suspect_state.name} to this question: \"{question}\"\n\n"
+            f"Current suspect state: {suspect_state_str}\n\n"
+            f"Player dialogue adaptations: {adaptations_str}\n\n"
+            f"Additional context: {context_str}\n\n"
+            "Create a structured plan addressing:\n"
+            "1. The suspect's likely psychological reaction to this question\n"
+            "2. What information they would reveal or conceal\n"
+            "3. Their emotional response and body language\n"
+            "4. How this interaction might change their state\n"
+            "5. Any potential contradictions or inconsistencies in their response\n"
+            "6. How to adapt the dialogue style and pacing to the player's psychological profile"
+        )
         
-        # Use the model router to select appropriate model
-        model = self.model_router.get_model_for_task("dialogue_generation")
+        planning_messages = [
+            self.model_message_cls(role="system", content=planning_system_prompt),
+            self.model_message_cls(role="user", content=planning_user_prompt)
+        ]
         
         try:
-            response = model.generate(prompt)
-            dialogue = response.strip()
+            planning_response = self.model_router.complete(
+                messages=planning_messages,
+                task_type="reasoning",
+                temperature=0.3,
+                max_tokens=800
+            )
             
-            # Update suspect state
-            updated_state = suspect_state.copy()
-            updated_state.interviewed = True
+            if self.use_mem0 and self.mem0_config.get("track_performance", True):
+                self.update_memory("dialogue_planning_response", str(planning_response.content)[:500])
+                self.update_memory("dialogue_planning_model", self.model_router.get_model_name_for_task("reasoning"))
             
-            # Adjust suspicious level based on psychological profile
-            if player_profile.cognitive_style == "analytical":
-                # Analytical players are more likely to spot inconsistencies
+            # Writing prompt with psychological adaptations + plan
+            writing_system_prompt = (
+                "You are an expert in criminal psychology and suspect behavior. "
+                "Generate realistic dialogue for a suspect being questioned, based on their profile, state, the planning output, "
+                "and the player's psychological adaptations. "
+                "The dialogue should reflect personality, emotional state, and knowledge or secrets. "
+                "Also update suspect's state after this interaction."
+            )
+            
+            writing_user_prompt = (
+                f"Generate dialogue for suspect {suspect_state.name} in response to: \"{question}\"\n\n"
+                f"Current suspect state: {suspect_state_str}\n\n"
+                f"Player dialogue adaptations: {adaptations_str}\n\n"
+                f"Additional context: {context_str}\n\n"
+                f"Response plan:\n{planning_response.content}\n\n"
+                "Provide:\n"
+                "1. The suspect's dialogue response\n"
+                "2. An updated suspect state reflecting changes after this interaction\n"
+                "3. Adapt dialogue style and pacing based on player's psychological profile"
+            )
+            
+            writing_messages = [
+                self.model_message_cls(role="system", content=writing_system_prompt),
+                self.model_message_cls(role="user", content=writing_user_prompt)
+            ]
+            
+            writing_response = self.model_router.complete(
+                messages=writing_messages,
+                task_type="writing",
+                temperature=0.7,
+                max_tokens=1000
+            )
+            
+            print("[DEBUG] SuspectAgent dialogue writing_response.content:", repr(writing_response.content))
+            
+            dialogue_text = writing_response.content
+            
+            if not dialogue_text:
+                if self.use_mem0:
+                    self.update_memory("last_error", "Empty dialogue response from LLM")
+                updated_state = suspect_state.model_copy()
+                updated_state.interviewed = True
+                return SuspectDialogueOutput(
+                    dialogue=f"\"I don't know anything about that,\" {suspect_state.name} says nervously.",
+                    updated_state=updated_state
+                )
+            
+            try:
+                response_dict = json.loads(dialogue_text)
+                dialogue = response_dict.get("dialogue", "")
+                updated_state_dict = response_dict.get("updated_state", {})
+                updated_state = SuspectState(**updated_state_dict)
+            except json.JSONDecodeError:
+                dialogue = dialogue_text
+                updated_state = suspect_state.model_copy()
+                updated_state.interviewed = True
+                
+                # Infer emotional state from dialogue text (from original)
+                lowered = dialogue_text.lower()
+                if "nervous" in lowered or "fidgeting" in lowered:
+                    updated_state.emotional_state = "nervous"
+                elif "angry" in lowered or "shouting" in lowered:
+                    updated_state.emotional_state = "angry"
+                elif "calm" in lowered or "composed" in lowered:
+                    updated_state.emotional_state = "calm"
+                
+                # Increase suspicious if contradictions detected
+                if "contradiction" in lowered or "inconsistent" in lowered:
+                    updated_state.suspicious_level += 1
+                    if "Inconsistent statement detected" not in updated_state.contradictions:
+                        updated_state.contradictions.append("Inconsistent statement detected")
+            
+            # Add suspicious level bump for analytical player (new feature)
+            if cognitive_style == "analytical":
                 updated_state.suspicious_level += 1
             
             return SuspectDialogueOutput(
                 dialogue=dialogue,
                 updated_state=updated_state
             )
+        
         except Exception as e:
-            print(f"Error generating dialogue: {str(e)}")
+            error_msg = f"LLM dialogue generation error: {str(e)}"
+            if self.use_mem0:
+                self.update_memory("last_error", error_msg)
+            
+            updated_state = suspect_state.model_copy()
+            updated_state.interviewed = True
+            
             return SuspectDialogueOutput(
-                dialogue="The suspect remains silent.",
-                updated_state=suspect_state
+                dialogue=f"\"I don't know anything about that,\" {suspect_state.name} says nervously.",
+                updated_state=updated_state
             )
 
     def generate_dialogue(self, question: str, suspect_state: SuspectState, context: dict = None) -> SuspectDialogueOutput:

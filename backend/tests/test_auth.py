@@ -1,17 +1,10 @@
+# NOTE: Uses global app/client fixtures from conftest.py. Do not import create_app or define app/client fixtures here.
 import pytest
-import sys
-import os
-from pathlib import Path
-
-# Add the parent directory to Python path
-sys.path.append(str(Path(__file__).parent.parent))
-
-from backend.app import create_app
+import json
 
 @pytest.fixture(scope="module")
 def app():
     return create_app({'TESTING': True})
-import json
 
 @pytest.fixture
 def client(app):

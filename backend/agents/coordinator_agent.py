@@ -5,6 +5,14 @@ Enhanced with PydanticAI for better type safety and agent capabilities.
 Uses ModelRouter to select appropriate models for different tasks:
 - deepseek-r1t-chimera for reasoning/analysis
 - mistral-nemo for writing/narrative
+
+# Prompt/Model Strategy (2024-06-08):
+# - System prompts are explicit, structured, and role-specific.
+# - All LLM completions use ModelRouter:
+#     - 'reasoning' (deepseek-r1t-chimera) for conflict detection/resolution
+# - Parameters tuned: temperature=0.3 for planning, 0.7 for narrative; max_tokens set per step.
+# - Prompts include context, player profile, and clear output format instructions.
+# - Inline comments explain prompt structure and model routing choices.
 """
 
 from .base_agent import BaseAgent

@@ -1,21 +1,9 @@
+# NOTE: Uses global app/client fixtures from conftest.py. Do not import create_app or define app/client fixtures here.
 import json
 import pytest
 from unittest.mock import patch, MagicMock
 
-from backend.app import create_app
-
-@pytest.fixture(scope="module")
-def app():
-    return create_app({'TESTING': True})
-
 from backend.agents.models.template_models import MysteryTemplate, Suspect, Clue
-
-@pytest.fixture
-def client(app):
-    """Create a test client."""
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
 
 @pytest.fixture
 def mock_supabase():

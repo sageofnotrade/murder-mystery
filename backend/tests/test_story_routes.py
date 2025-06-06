@@ -1,3 +1,4 @@
+# NOTE: Uses global app/client fixtures from conftest.py. Do not import create_app or define app/client fixtures here.
 from backend.tests.mocks.supabase_mock import MockSupabaseClient
 from unittest.mock import patch, MagicMock, AsyncMock
 # Patch Supabase client globally for all tests in this module
@@ -16,7 +17,6 @@ import json
 from backend.app import create_app
 from datetime import datetime
 import unittest
-from fastapi.testclient import TestClient
 from flask_jwt_extended import JWTManager, create_access_token
 from backend.agents.models.psychological_profile import (
     PsychologicalProfile,
