@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: murder-mystery-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn backend.app:create_app() --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: SECRET_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: REDIS_TOKEN
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true 
