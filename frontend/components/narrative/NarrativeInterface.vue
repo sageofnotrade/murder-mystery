@@ -3,7 +3,7 @@
     <div
       v-if="currentNarrativeSegment"
       key="segment"
-      class="max-w-4xl mx-auto px-6 py-12 space-y-8"
+      class="max-w-4xl mx-auto px-6 py-16 sm:py-20 space-y-10"
     >
 
       <!-- Story Log (AI Dungeon-style) -->
@@ -23,17 +23,25 @@
         @select-choice="handleChoiceSelection"
       />
           <div class="flex flex-wrap sm:flex-nowrap flex-col sm:flex-row gap-4 justify-center mt-6">
-
-      <button class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">Take a Turn</button>
-      <button class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">Continue</button>
-      <button class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">Retry</button>
-      <button class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700">Erase</button>
-    </div>
+  <button class="px-4 py-2 rounded font-semibold bg-pink-600 text-white hover:bg-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-400">
+    Continue
+  </button>
+  <button class="px-4 py-2 rounded bg-gray-700 text-white hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">
+    Take a Turn
+  </button>
+  <button class="px-4 py-2 rounded bg-yellow-600 text-white hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-300">
+    Retry
+  </button>
+  <button class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400">
+    Erase
+  </button>
+</div>
     </div>
   </Transition>
 
       <!-- Floating Input Bar -->
-      <div class="fixed bottom-0 left-0 w-full bg-gray-950 border-t border-gray-700 p-4 z-50">
+      <div class="fixed bottom-0 left-0 w-full bg-gray-900 border-t border-gray-700 p-4 z-50 shadow-inner">
+
         <div class="max-w-3xl mx-auto">
           <UserInput
             v-if="allowUserInput"
@@ -53,9 +61,10 @@
     <button
       @click="restartMystery"
       class="flex items-center text-pink-400 hover:underline gap-1"
+      aria-label="Restart the mystery"
     >
       <RefreshIcon class="w-4 h-4" />
-      Restart Mystery
+      <span class="sr-only">Restart Mystery</span>
     </button>
   </div>
 </template>

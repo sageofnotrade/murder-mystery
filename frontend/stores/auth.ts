@@ -13,10 +13,20 @@ interface AuthState {
   loading: boolean
 }
 
+// Check if we're running in development mode
+const isDevMode = process.env.NODE_ENV === 'development'
+
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
-    user: null,
-    isAuthenticated: false,
+    user: isDevMode
+      ? {
+          id: 'dev-user-001',
+          email: 'dev@local.test',
+          psychological_traits: { curiosity: 5 },
+          preferences: { theme: 'dark' }
+        }
+      : null,
+    isAuthenticated: isDevMode,
     loading: false
   }),
 
@@ -30,11 +40,11 @@ export const useAuthStore = defineStore('auth', {
     async login(email: string, password: string) {
       this.loading = true
       try {
-        // TODO: Implement Supabase authentication
-        this.isAuthenticated = true
-        this.user = {
-          id: 'temp-id',
-          email
+        if (isDevMode) {
+          this.user = { id: 'dev-user-001', email }
+          this.isAuthenticated = true
+        } else {
+          // TODO: Implement Supabase login
         }
       } catch (error) {
         console.error('Login error:', error)
@@ -47,9 +57,12 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       this.loading = true
       try {
-        // TODO: Implement Supabase logout
-        this.user = null
-        this.isAuthenticated = false
+        if (isDevMode) {
+          this.user = null
+          this.isAuthenticated = false
+        } else {
+          // TODO: Implement Supabase logout
+        }
       } catch (error) {
         console.error('Logout error:', error)
         throw error
@@ -61,11 +74,11 @@ export const useAuthStore = defineStore('auth', {
     async register(email: string, password: string) {
       this.loading = true
       try {
-        // TODO: Implement Supabase registration
-        this.isAuthenticated = true
-        this.user = {
-          id: 'temp-id',
-          email
+        if (isDevMode) {
+          this.user = { id: 'dev-user-001', email }
+          this.isAuthenticated = true
+        } else {
+          // TODO: Implement Supabase registration
         }
       } catch (error) {
         console.error('Registration error:', error)
@@ -75,4 +88,4 @@ export const useAuthStore = defineStore('auth', {
       }
     }
   }
-}) 
+})

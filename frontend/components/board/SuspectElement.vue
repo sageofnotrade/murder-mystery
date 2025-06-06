@@ -27,9 +27,9 @@ defineProps({
 
 <style scoped>
 .suspect-element {
-  background: linear-gradient(to bottom, #ffe0e0, #fff1f1);
+  bbackground: linear-gradient(to bottom, #ffe0e0, #fff1f1);
   border: 2px dashed #d33;
-  box-shadow: 3px 5px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.08);
   font-family: 'Courier New', Courier, monospace;
   padding: 1em;
   padding-top: 2em;
@@ -46,7 +46,7 @@ defineProps({
   display: flex;
   flex-direction: column;
   gap: 0.3em;
-  transition: transform 0.2s ease-in-out;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .suspect-photo {
   width: 100%;
@@ -58,6 +58,7 @@ defineProps({
 
 .suspect-element:hover {
   transform: scale(1.02);
+  box-shadow: 4px 6px 12px rgba(0, 0, 0, 0.12);
   z-index: 20;
 }
 
@@ -65,36 +66,37 @@ defineProps({
   position: absolute;
   top: 0.4em;
   right: 0.4em;
-  background-color: #f88;
+  background-color: #ffd4d4;
   border: none;
   border-radius: 50%;
   width: 1.4em;
   height: 1.4em;
   font-size: 0.8em;
   font-weight: bold;
-  color: white;
+  color: #a00;
   cursor: pointer;
   box-shadow: 0 1px 2px #aaa;
   z-index: 3;
 }
 
 .delete-button:hover {
-  background-color: #d33;
+  background-color: #fbb;
+  color: #700;
 }
 
 .element-header {
   font-weight: bold;
-  font-size: 1em;
+  font-size: 0.95em;
   color: #b22222;
   border-bottom: 1px dashed #d33;
-  padding-bottom: 0.3em;
-  margin-bottom: 0.3em;
+  padding-bottom: 0.2em;
+  margin-bottom: 0.2em;
 }
 
 .element-body p {
-  font-size: 0.9em;
+  font-size: 0.85em;
   color: #4b1f1f;
-  margin: 0;
+  margin: 0.2em 0;
 }
 
 .element-footer {
@@ -104,12 +106,4 @@ defineProps({
   text-align: right;
 }
 
-.suspect-element:hover,
-.clue-element:hover,
-.note-element:hover,
-.location-element:hover {
-  transform: scale(1.02);
-  z-index: 20;
-  transition: transform 0.2s ease-in-out;
-}
 </style>

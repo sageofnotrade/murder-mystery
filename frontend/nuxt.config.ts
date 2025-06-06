@@ -1,4 +1,10 @@
+import tsconfigPaths from 'vite-tsconfig-paths'
 import { defineNuxtConfig } from 'nuxt/config'
+
+import { fileURLToPath } from 'url'
+import { dirname, resolve } from 'path'
+
+const rootDir = dirname(fileURLToPath(import.meta.url))
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -23,8 +29,9 @@ export default defineNuxtConfig({
       }
     }
   },
+  
   alias: {
-    '@': '/<rootDir>',
+    '@': resolve(rootDir),
   },
   runtimeConfig: {
     public: {
@@ -55,5 +62,8 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
       ]
     }
+  },
+  vite: {
+    plugins: [tsconfigPaths()]
   }
 })

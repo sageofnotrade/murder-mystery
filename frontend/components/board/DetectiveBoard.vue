@@ -3,25 +3,27 @@
     <!-- Board controls -->
     <div class="board-controls">
   <div class="control-group">
-    <button @click="zoomIn">Zoom In</button>
-    <button @click="zoomOut">Zoom Out</button>
-    <button @click="resetView">Reset View</button>
-    <button @click="undo" :disabled="!canUndo">Undo</button>
-    <button @click="redo" :disabled="!canRedo">Redo</button>
-    <button @click="saveBoard" :disabled="isSaving">Save</button>
-    <button @click="loadBoard" :disabled="isLoading">Load</button>
-    <button @click="resetBoardConfirm">Reset</button>
-  </div>
-  <div class="control-group">
-    <button @click="addElement('suspect')">Add Suspect</button>
-    <button @click="addElement('clue')">Add Clue</button>
-    <button @click="addElement('location')">Add Location</button>
-    <button @click="addElement('note')">Add Note</button>
-    <button @click="startConnectionMode" :class="{ active: isConnecting }">Connect</button>
-    <select v-model="selectedConnectionType" :disabled="!isConnecting" class="connection-type-select">
-      <option v-for="type in connectionTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
-    </select>
-  </div>
+  <button class="board-btn" @click="zoomIn">Zoom In</button>
+  <button class="board-btn" @click="zoomOut">Zoom Out</button>
+  <button class="board-btn" @click="resetView">Reset View</button>
+  <button class="board-btn" @click="undo" :disabled="!canUndo">Undo</button>
+  <button class="board-btn" @click="redo" :disabled="!canRedo">Redo</button>
+  <button class="board-btn" @click="saveBoard" :disabled="isSaving">Save</button>
+  <button class="board-btn" @click="loadBoard" :disabled="isLoading">Load</button>
+  <button class="board-btn danger" @click="resetBoardConfirm">Reset</button>
+</div>
+
+<div class="control-group">
+  <button class="board-btn" @click="addElement('suspect')">Add Suspect</button>
+  <button class="board-btn" @click="addElement('clue')">Add Clue</button>
+  <button class="board-btn" @click="addElement('location')">Add Location</button>
+  <button class="board-btn" @click="addElement('note')">Add Note</button>
+  <button class="board-btn" @click="startConnectionMode" :class="{ active: isConnecting }">Connect</button>
+  <select v-model="selectedConnectionType" :disabled="!isConnecting" class="connection-type-select">
+    <option v-for="type in connectionTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
+  </select>
+</div>
+
 </div>
     <div v-if="isConnecting" class="connection-overlay" :style="{ borderLeft: '5px solid ' + connectionTypeColor }">
       <p>
@@ -214,12 +216,26 @@ const getElementComponent = (type) => {
 };
 
 const addElement = (type) => {
-  if (!["suspect","clue","location","note"].includes(type)) return;
-  boardStore.addElement({
+  console.log("Clicked Add:", type); // 🔥 Confirm this shows in Console
+
+  if (!["suspect", "clue", "location", "note"].includes(type)) {
+    console.warn("Invalid element type:", type);
+    return;
+  }
+
+  const newElement = {
+    id: Date.now().toString(), // 🔥 ID is required for rendering
     type,
+    name: `${type} ${Date.now()}`, // 🔥 optional, for label
     position: { x: 100, y: 100 },
-    // Add more default properties as needed
-  });
+    motive: '',
+    alibi: '',
+    description: '',
+    notes: ''
+  };
+
+  boardStore.addElement(newElement);
+  console.log("Added to store:", newElement); // 🔥 Confirm this shows too
 };
 
 const boardRef = ref(null);
@@ -518,6 +534,38 @@ const endSidebarDrag = () => {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+.board-btn {
+  background-color: #fffbe5;
+  color: #4b3d1f;
+  border: 1px solid #d2a656;
+  padding: 0.45rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 1px 1px 4px #d3b46f;
+}
+
+.board-btn:hover {
+  background-color: #f0e0b8;
+  color: #000;
+  transform: scale(1.02);
+}
+
+.board-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.board-btn.danger {
+  background-color: #ffe5e5;
+  border-color: #dd4444;
+  color: #aa0000;
+}
+
+.board-btn.danger:hover {
+  background-color: #ffc1c1;
+}
 
 .board-controls button:hover,
 .board-controls select:hover {
@@ -579,8 +627,13 @@ const endSidebarDrag = () => {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: auto;
+  pointer-events: none;
   z-index: 1;
+}
+.connections-layer path,
+.connections-layer g,
+.connections-layer text {
+  pointer-events: auto;
 }
 .element-sidebar {
   position: absolute;
