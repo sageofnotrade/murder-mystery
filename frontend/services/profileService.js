@@ -12,25 +12,25 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
  */
 async function submitQuestionnaire(responses) {
   try {
-    const { data, error } = await useFetch(`${API_URL}/api/profiles/questionnaire`, {
+    const response = await fetch(`${API_URL}/api/profiles/questionnaire`, {
       method: 'POST',
-      body: {
-        responses,
-        timestamp: new Date().toISOString()
-      },
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify({
+        responses,
+        timestamp: new Date().toISOString()
+      })
     });
     
-    if (error.value) {
-      throw new Error(error.value.statusMessage || 'Failed to submit questionnaire');
+    if (!response.ok) {
+      throw new Error('Failed to submit questionnaire');
     }
     
-    return data.value;
-  } catch (err) {
-    console.error('Error in submitQuestionnaire:', err);
-    throw err;
+    return await response.json();
+  } catch (error) {
+    console.error('Error in submitQuestionnaire:', error);
+    throw error;
   }
 }
 
@@ -40,21 +40,21 @@ async function submitQuestionnaire(responses) {
  */
 async function getUserProfile() {
   try {
-    const { data, error } = await useFetch(`${API_URL}/api/profiles/current`, {
+    const response = await fetch(`${API_URL}/api/profiles/current`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
       }
     });
     
-    if (error.value) {
-      throw new Error(error.value.statusMessage || 'Failed to fetch profile');
+    if (!response.ok) {
+      throw new Error('Failed to fetch profile');
     }
     
-    return data.value;
-  } catch (err) {
-    console.error('Error in getUserProfile:', err);
-    throw err;
+    return await response.json();
+  } catch (error) {
+    console.error('Error in getUserProfile:', error);
+    throw error;
   }
 }
 
