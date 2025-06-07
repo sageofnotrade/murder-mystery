@@ -9,8 +9,17 @@ module.exports = defineConfig({
     screenshotOnRunFailure: true,
     viewportWidth: 1280,
     viewportHeight: 720,
+    defaultCommandTimeout: 10000,
+    pageLoadTimeout: 30000,
     setupNodeEvents(on, config) {
       // implement node event listeners here
+      return config
+    },
+  },
+  component: {
+    devServer: {
+      framework: 'nuxt',
+      bundler: 'vite',
     },
   },
 }) 

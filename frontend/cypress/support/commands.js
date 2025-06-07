@@ -28,4 +28,27 @@ Cypress.Commands.add('talkToSuspect', (suspectName) => {
 // Custom command to check game state
 Cypress.Commands.add('checkGameState', (expectedState) => {
   cy.get('[data-cy="game-state"]').should('have.text', expectedState)
+})
+
+Cypress.Commands.add('registerIfNeeded', (email, password) => {
+  cy.visit('/auth/login', { failOnStatusCode: false })
+  cy.get('body').then($body => {
+    if ($body.find('#email').length) {
+      cy.get('#email').type(email, { force: true })
+      cy.get('#password').type(password, { force: true })
+      cy.get('button[type="submit"]').click({ force: true })
+      cy.wait(2000)
+      cy.url().then(url => {
+        if (url.includes('/auth/login')) {
+          // Login failed, try to register
+          cy.visit('/auth/register', { failOnStatusCode: false })
+          cy.get('#email').type(email, { force: true })
+          cy.get('#password').type(password, { force: true })
+          cy.get('#confirmPassword').type(password, { force: true })
+          cy.get('button[type="submit"]').click({ force: true })
+          cy.wait(2000)
+        }
+      })
+    }
+  })
 }) 
