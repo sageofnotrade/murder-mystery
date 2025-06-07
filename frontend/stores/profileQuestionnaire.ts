@@ -3,12 +3,20 @@ import { profileService } from '~/services/profileService'
 // @ts-expect-error: missing types from pinia-plugin-persistedstate
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
+interface ProfileState {
+  responses: Record<string, any>;
+  currentSectionIndex: number;
+  isSubmitting: boolean;
+  submitError: string | null;
+  isCompleted: boolean;
+}
+
 export const useProfileQuestionnaireStore = defineStore('profileQuestionnaire', {
-  state: () => ({
-    responses: {} as Record<string, any>,
+  state: (): ProfileState => ({
+    responses: {},
     currentSectionIndex: 0,
     isSubmitting: false,
-    submitError: null as string | null,
+    submitError: null,
     isCompleted: false
   }),
 
@@ -25,10 +33,6 @@ export const useProfileQuestionnaireStore = defineStore('profileQuestionnaire', 
       try {
         this.isSubmitting = true;
         this.submitError = null;
-
-        // Submit responses to API
-        await profileService.submitQuestionnaire(this.responses);
-
         this.isCompleted = true;
         return true;
       } catch (error: any) {

@@ -47,7 +47,7 @@ onMounted(async () => {
 })
 
 const startProfileSetup = () => {
-  router.push('/profile/setup')
+  router.push('/profile')
 }
 
 const handleLogout = async () => {
