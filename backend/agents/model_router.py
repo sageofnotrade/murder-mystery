@@ -48,31 +48,34 @@ class ModelRouter:
         # Set headers after provider creation
         self.provider.headers = {
             "HTTP-Referer": "https://github.com/dallsszz/murder-mystery",  # Required by OpenRouter
+            "X-Title": "Murder Mystery Game",  # Required by OpenRouter
             "Authorization": f"Bearer {self.api_key}",  # Required for authentication
-            "Content-Type": "application/json"  # Required for API requests
+            "Content-Type": "application/json",  # Required for API requests
+            "OpenAI-Organization": "org-123",  # Required by OpenRouter
+            "OpenAI-Project": "proj-123"  # Required by OpenRouter
         }
         
         # Set default parameters for OpenRouter
         self.provider.default_params = {
-            "model": "openai:gpt-3.5-turbo",  # Default model
+            "model": "deepseek/deepseek-r1-0528-qwen3-8b",  # Using DeepSeek model as default
             "temperature": 0.7,
             "max_tokens": 1000
         }
         
         # Initialize models with proper configuration
         self.reasoning_model = OpenAIModel(
-            "openai:gpt-3.5-turbo",  # Using a model that PydanticAI recognizes
+            'mistralai/mistral-nemo',  # Using Mistral Nemo for reasoning
             provider=self.provider
         )
         
         self.writing_model = OpenAIModel(
-            "openai:gpt-3.5-turbo",  # Using a model that PydanticAI recognizes
+            'mistralai/mistral-nemo',  # Using Mistral Nemo for writing
             provider=self.provider
         )
         
         # Set model routes after initialization
-        self.reasoning_model.route = "openai/gpt-3.5-turbo"  # OpenRouter route
-        self.writing_model.route = "openai/gpt-3.5-turbo"  # OpenRouter route
+        self.reasoning_model.route = 'mistralai/mistral-nemo'  # OpenRouter route
+        self.writing_model.route = 'mistralai/mistral-nemo'  # OpenRouter route
         
         # Default model (used when no specific task type is provided)
         self.default_model = self.reasoning_model
@@ -169,8 +172,8 @@ class ModelRouter:
         """
         model = self.get_model_for_task(task_type)
         if model == self.reasoning_model:
-            return "deepseek-r1t-chimera"
+            return "mistralai/mistral-nemo"
         elif model == self.writing_model:
-            return "mistral-nemo"
+            return "mistralai/mistral-nemo"
         else:
             return "unknown"
