@@ -8,6 +8,10 @@ from unittest.mock import patch
 from backend.tests.mocks.redis_mock import MockRedisClient
 from flask_jwt_extended import create_access_token
 
+# Patch redis_client in backend.routes.board_state_routes for all tests in this file
+redis_patch = patch('backend.routes.board_state_routes.redis_client', new=MockRedisClient())
+redis_patch.start()
+
 @pytest.fixture
 def auth_headers(app):
     with app.app_context():

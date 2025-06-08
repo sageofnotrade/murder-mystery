@@ -1,11 +1,11 @@
 import os
 from dotenv import load_dotenv
-from agents.story_agent import StoryAgent
-from agents.suspect_agent import SuspectAgent, SuspectState
-from agents.clue_agent import ClueAgent
-from agents.board_agent import BoardAgent
-from agents.coordinator_agent import CoordinatorAgent
-from agents.model_router import ModelRouter
+from backend.agents.story_agent import StoryAgent
+from backend.agents.suspect_agent import SuspectAgent, SuspectState
+from backend.agents.clue_agent import ClueAgent
+from backend.agents.board_agent import BoardAgent
+from backend.agents.coordinator_agent import CoordinatorAgent
+from backend.agents.model_router import ModelRouter
 
 # Load environment variables
 load_dotenv()

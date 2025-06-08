@@ -2,6 +2,7 @@ import pytest
 from backend.agents.models.template_models import (
     Suspect, Clue, MysteryTemplate, Victim, CrimeScene, RedHerring
 )
+from pydantic import ValidationError
 
 def test_suspect_model():
     suspect = Suspect(
@@ -24,6 +25,8 @@ def test_suspect_model():
     suspect = Suspect(
         id="s2",
         name="Jane Doe",
+        motive="Unknown",
+        alibi="Unknown",
         guilty=True
     )
     assert suspect.guilty is True
@@ -112,13 +115,13 @@ def test_mystery_template_model():
 
 def test_mystery_template_validation():
     # Test missing required fields
-    with pytest.raises(TypeError):
+    with pytest.raises(ValidationError):
         MysteryTemplate(
             description="Missing required fields"
         )
 
     # Test invalid victim format
-    with pytest.raises(TypeError):
+    with pytest.raises(ValidationError):
         MysteryTemplate(
             title="Invalid Template",
             description="Invalid victim format",
@@ -129,7 +132,7 @@ def test_mystery_template_validation():
         )
 
     # Test invalid suspects format
-    with pytest.raises(TypeError):
+    with pytest.raises(ValidationError):
         MysteryTemplate(
             title="Invalid Template",
             description="Invalid suspects format",

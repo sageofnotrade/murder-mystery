@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from backend.services.story_service import StoryService
 from backend.services.supabase_service import get_supabase_client
 from uuid import UUID
+from backend.agents.models.story_models import StoryState
 
 story_bp = Blueprint('story_routes', __name__)
 
@@ -102,6 +103,24 @@ def make_choice(story_id):
         data = request.get_json()
         result = story_service.make_choice_sync(story_id, user_id, data)
         return jsonify(result)
+    except Exception as e:
+        if 'not found' in str(e).lower() or isinstance(e, ValueError):
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
+
+@story_bp.route('/stories/<story_id>/save', methods=['POST'])
+@jwt_required()
+def save_story(story_id):
+    """Save the current state of a story."""
+    user_id = get_jwt_identity()
+    story_service = get_story_service()
+    try:
+        data = request.get_json()
+        # Validate and construct StoryState from data
+        story = StoryState(**data)
+        story.id = story_id  # Ensure the ID matches the URL
+        story_service.save_story_state_sync(story, user_id)  # Use sync version for test compatibility
+        return jsonify({'message': 'Story state saved successfully.'}), 200
     except Exception as e:
         if 'not found' in str(e).lower() or isinstance(e, ValueError):
             return jsonify({'error': str(e)}), 404

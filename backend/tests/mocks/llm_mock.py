@@ -5,6 +5,7 @@ Provides reusable mocks for testing AI agents.
 
 from unittest.mock import Mock, MagicMock
 import json
+from backend.agents.clue_agent import ClueData, ClueGenerateOutput
 
 
 class LLMMockFactory:
@@ -245,16 +246,37 @@ class PydanticAIMockFactory:
     def create_agent_mock():
         """Create a mock PydanticAI agent."""
         mock_agent = Mock()
-        
         # Mock tool registration
         mock_agent.tool = Mock(return_value=lambda func: func)
-        
-        # Mock agent execution
-        async def mock_run(*args, **kwargs):
-            return {"result": "Mock agent result"}
-        
-        mock_agent.run = mock_run
-        
+        # Mock run_sync method as a regular function
+        def mock_run(*args, **kwargs):
+            return MagicMock(output=ClueGenerateOutput(
+                clue=ClueData(
+                    description="A bloodied letter opener found under the desk",
+                    details="Forensic analysis shows fingerprints matching suspect John Doe",
+                    significance="High - potential murder weapon",
+                    related_to=["John Doe"],
+                    confidence=0.9
+                ),
+                sources=["https://example.com/forensics"]
+            ))
+        mock_agent.run_sync = mock_run
+        return mock_agent
+
+    @staticmethod
+    def create_error_mock(error_message: str = "API Error"):
+        """Create a mock PydanticAI agent that raises an error."""
+        mock_agent = Mock()
+        mock_agent.tool = Mock(return_value=lambda func: func)
+        mock_agent.run_sync = Mock(side_effect=Exception(error_message))
+        return mock_agent
+
+    @staticmethod
+    def create_invalid_output_mock():
+        """Create a mock PydanticAI agent that returns invalid output."""
+        mock_agent = Mock()
+        mock_agent.tool = Mock(return_value=lambda func: func)
+        mock_agent.run_sync = Mock(return_value=MagicMock(output="invalid json"))
         return mock_agent
 
 
@@ -295,12 +317,11 @@ def create_suspect_agent_mocks():
 
 
 def create_clue_agent_mocks():
-    """Create mocks specifically for ClueAgent testing."""
+    """Create all mocks needed for clue agent tests."""
     return {
-        'mem0_client': Mem0MockFactory.create_memory_client_mock(),
-        'model_router': ModelRouterMockFactory.create_with_llm_mock(
-            LLMMockFactory.create_clue_response_mock()
-        ),
-        'brave_search': BraveSearchMockFactory.create_success_mock(),
-        'pydantic_agent': PydanticAIMockFactory.create_agent_mock()
+        "llm": LLMMockFactory.create_clue_response_mock(),
+        "brave_search": BraveSearchMockFactory.create_success_mock(),
+        "mem0": Mem0MockFactory.create_memory_client_mock(),
+        "model_router": ModelRouterMockFactory.create_model_router_mock(),
+        "pydantic_agent": PydanticAIMockFactory.create_agent_mock()
     } 

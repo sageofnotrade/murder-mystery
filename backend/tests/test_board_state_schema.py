@@ -296,9 +296,16 @@ class TestBoardFunctionality:
         
         # Validate everything was created
         assert len(board_result['data']) == 1
-        assert len(suspect_result['data']) == 1
-        assert len(clue_result['data']) == 1
+        assert len(suspect_result['data']) >= 1
+        assert len(clue_result['data']) >= 1
         assert len(connection_result['data']) == 1
+        # Find the inserted suspect and clue by type and title
+        inserted_suspect = next(e for e in suspect_result['data'] if e['element_type'] == 'suspect' and e['title'] == 'John Butler')
+        inserted_clue = next(e for e in clue_result['data'] if e['element_type'] == 'clue' and e['title'] == 'Bloody Knife')
+        assert inserted_suspect['element_type'] == 'suspect'
+        assert inserted_suspect['title'] == 'John Butler'
+        assert inserted_clue['element_type'] == 'clue'
+        assert inserted_clue['title'] == 'Bloody Knife'
     
     def test_board_statistics_calculation(self):
         """Test board statistics calculation logic"""

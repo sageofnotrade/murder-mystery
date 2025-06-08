@@ -4,6 +4,7 @@ from datetime import datetime
 from supabase import Client
 from backend.agents.models.story_models import StoryState
 from backend.agents.models.clue_models import ClueCreate, ClueDetail, ClueConnection, ClueAnalysisRequest
+import uuid
 
 class ClueService:
     def __init__(self, supabase: Client):
@@ -309,4 +310,11 @@ class ClueService:
             .update({'connections': [conn['id'] for conn in result.data]})\
             .eq('story_id', story_id)\
             .eq('id', clue_id)\
-            .execute() 
+            .execute()
+
+    async def get_clue_details_by_id(self, clue_id: str) -> dict:
+        """Fetch a clue by its clue_id only."""
+        result = await self.supabase.table('story_clues').select('*').eq('id', clue_id).single().execute()
+        if not result.data:
+            raise Exception("Clue not found")
+        return result.data 

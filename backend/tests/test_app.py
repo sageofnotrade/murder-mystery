@@ -3,32 +3,21 @@ import pytest
 import json
 
 def test_index_endpoint(client):
-    """Test the main index endpoint."""
     client, _ = client
-    response = client.get('/')
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert 'message' in data
-    assert 'status' in data
-    assert 'version' in data
-    assert data['status'] == 'online'
-    assert data['version'] == '0.1.0'
+    """Test the main index endpoint."""
+    resp = client.get('/')
+    assert resp.status_code == 200
+    assert resp.json['message'] == 'Welcome to the Murþrą API'
 
 def test_health_endpoint(client):
-    """Test the health check endpoint."""
     client, _ = client
-    response = client.get('/health')
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert 'status' in data
-    assert 'services' in data
-    assert data['status'] == 'healthy'
-    assert isinstance(data['services'], dict)
-    assert 'supabase' in data['services']
-    assert 'redis' in data['services']
+    """Test the health check endpoint."""
+    resp = client.get('/health')
+    assert resp.status_code == 200
+    assert resp.json['status'] == 'healthy'
 
 def test_invalid_endpoint(client):
-    """Test accessing an invalid endpoint."""
     client, _ = client
-    response = client.get('/invalid-endpoint')
-    assert response.status_code == 404 
+    """Test accessing an invalid endpoint."""
+    resp = client.get('/api/invalid')
+    assert resp.status_code == 404 

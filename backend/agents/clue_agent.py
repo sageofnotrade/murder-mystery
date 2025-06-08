@@ -49,6 +49,7 @@ class ClueData(BaseModel):
     significance: Optional[str] = None
     related_to: Optional[List[str]] = Field(default_factory=list)
     confidence: Optional[float] = None
+    type: Optional[str] = None
 
 class ClueOutput(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -252,15 +253,39 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
                     else:
                         clue_data = result.output
 
-                    # Create a ClueData object from the parsed JSON
-                    clue = ClueData(
-                        description=clue_data.get('description', ''),
-                        details=clue_data.get('details', ''),
-                        significance=clue_data.get('significance'),
-                        related_to=clue_data.get('related_clues', []),
-                        confidence=clue_data.get('confidence_level')
+                    # If the clue is a ClueGenerateOutput, use it directly
+                    if isinstance(clue_data, ClueGenerateOutput):
+                        return clue_data
+                    # If the clue is a dict, wrap it in ClueData and ClueGenerateOutput
+                    if isinstance(clue_data, dict):
+                        # If the description is a dict (e.g., context), fix it
+                        if isinstance(clue_data.get('description'), dict):
+                            clue_data['description'] = f"Clue: {prompt} (context: {context})"
+                            clue_data['details'] = "No valid clue could be generated."
+                        clue_data = ClueData(
+                            description=clue_data.get('description', str(prompt)),
+                            details=clue_data.get('details', "No details available."),
+                            significance=clue_data.get('significance'),
+                            related_to=clue_data.get('related_to', []),
+                            confidence=clue_data.get('confidence'),
+                            type="unknown"
+                        )
+                        return ClueGenerateOutput(clue=clue_data, sources=[r['url'] for r in search_results])
+                    # If the clue is already a ClueData, wrap it
+                    if isinstance(clue_data, ClueData):
+                        return ClueGenerateOutput(clue=clue_data, sources=[r['url'] for r in search_results])
+                    # Otherwise, fallback
+                    return ClueGenerateOutput(
+                        clue=ClueData(
+                            description=str(prompt),
+                            details="No valid clue could be generated.",
+                            significance=None,
+                            related_to=[],
+                            confidence=None,
+                            type="unknown"
+                        ),
+                        sources=[r['url'] for r in search_results]
                     )
-                    return ClueOutput(clue=clue.model_dump(), sources=[])
                 except (json.JSONDecodeError, AttributeError) as e:
                     print(f"[DEBUG] ClueAgent exception in JSON parsing: {e}")
                     print(f"[DEBUG] ClueAgent raw JSON string: {repr(result.output)}")
@@ -268,7 +293,7 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
                     if hasattr(result.output, 'clue'):
                         if isinstance(result.output, ClueGenerateOutput):
                             clue_data = result.output.clue
-                            return ClueOutput(clue=clue_data.model_dump(), sources=[])
+                            return ClueOutput(clue=clue_data, sources=[])
                         else:
                             return ClueOutput(clue=result.output.clue, sources=[])
 
@@ -281,24 +306,47 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
         search_results = self._brave_search(prompt)
         clue = self._llm_generate_clue(prompt, context, search_results)
 
-        # If the clue description is a dict (e.g., context), fix it
-        if isinstance(clue.get('description'), dict):
-            clue['description'] = f"Clue: {prompt} (context: {context})"
-            clue['details'] = "No valid clue could be generated."
-
-        # Track performance metrics if enabled
-        if self.use_mem0 and self.mem0_config.get("track_performance", True):
-            generation_time = time.time() - start_time
-            self.update_memory("last_clue_generation_time", f"{generation_time:.2f} seconds")
-
-        return ClueOutput(clue=clue, sources=[r['url'] for r in search_results])
+        # If the clue is a ClueGenerateOutput, use it directly
+        if isinstance(clue, ClueGenerateOutput):
+            return clue
+        # If the clue is a dict, wrap it in ClueData and ClueGenerateOutput
+        if isinstance(clue, dict):
+            # If the description is a dict (e.g., context), fix it
+            if isinstance(clue.get('description'), dict):
+                clue['description'] = f"Clue: {prompt} (context: {context})"
+                clue['details'] = "No valid clue could be generated."
+            clue_data = ClueData(
+                description=clue.get('description', str(prompt)),
+                details=clue.get('details', "No details available."),
+                significance=clue.get('significance'),
+                related_to=clue.get('related_to', []),
+                confidence=clue.get('confidence'),
+                type="unknown"
+            )
+            return ClueGenerateOutput(clue=clue_data, sources=[r['url'] for r in search_results])
+        # If the clue is already a ClueData, wrap it
+        if isinstance(clue, ClueData):
+            return ClueGenerateOutput(clue=clue, sources=[r['url'] for r in search_results])
+        # Otherwise, fallback
+        return ClueGenerateOutput(
+            clue=ClueData(
+                description=str(prompt),
+                details="No valid clue could be generated.",
+                significance=None,
+                related_to=[],
+                confidence=None,
+                type="unknown"
+            ),
+            sources=[r['url'] for r in search_results]
+        )
 
     def _brave_search(self, query: str) -> list[dict]:
         load_dotenv()
         api_key = os.getenv("BRAVE_API_KEY")
 
         if not api_key:
-            self.mem0_client.update("last_error", "Missing Brave API key")
+            if self.mem0_client is not None:
+                self.mem0_client.update("last_error", "Missing Brave API key")
             return []
 
         url = "https://api.search.brave.com/res/v1/web/search"
@@ -416,7 +464,8 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
                     self.mem0_client.update("last_error", "Empty response from LLM")
                 return ClueData(
                     description=prompt or "Unknown Clue",
-                    details="Analysis pending."
+                    details="Analysis pending.",
+                    type="unknown"
                 )
 
             # Try to parse structured data from the response
@@ -435,6 +484,7 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
                             significance=clue_dict.get("significance"),
                             related_to=clue_dict.get("related_to", []),
                             confidence=clue_dict.get("confidence"),
+                            type="unknown",
                             **{k: v for k, v in clue_dict.items() if k not in ["description", "details", "significance", "related_to", "confidence"]}
                         )
                         return result
@@ -457,7 +507,8 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
 
             return ClueData(
                 description=description,
-                details=details
+                details=details,
+                type="unknown"
             )
 
         except Exception as e:
@@ -466,7 +517,8 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
                 self.mem0_client.update("last_error", error_msg)
             return ClueData(
                 description=prompt or "Unknown Clue",
-                details="Unable to analyze this clue at the moment."
+                details="Unable to analyze this clue at the moment.",
+                type="unknown"
             )
 
     def _llm_generate_clue(self, prompt: str, context: dict, search_results: list[dict]) -> dict:
@@ -543,13 +595,17 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
             content = response.content
             if not content:
                 self.mem0_client.update("last_error", "Empty response from LLM")
-                return {
-                    "type": "unknown",
-                    "description": prompt,
-                    "relevance": "unknown",
-                    "details": "Analysis pending.",
-                    "context": context
-                }
+                return ClueGenerateOutput(
+                    clue=ClueData(
+                        description=str(prompt),
+                        details=str(e),
+                        significance=None,
+                        related_to=[],
+                        confidence=None,
+                        type="unknown"
+                    ),
+                    sources=[]
+                )
 
             # Try to parse JSON from the response
             try:
@@ -570,23 +626,32 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
                 pass
 
             # Fallback if JSON parsing failed
-            return {
-                "type": "unknown",
-                "description": prompt,
-                "relevance": "unknown",
-                "details": content,
-                "context": context
-            }
+            return ClueGenerateOutput(
+                clue=ClueData(
+                    description=str(prompt),
+                    details=str(e),
+                    significance=None,
+                    related_to=[],
+                    confidence=None,
+                    type="unknown"
+                ),
+                sources=[]
+            )
 
         except Exception as e:
-            self.mem0_client.update("last_error", f"ModelRouter error: {str(e)}")
-            return {
-                "type": "unknown",
-                "description": prompt,
-                "relevance": "unknown",
-                "details": str(e),
-                "context": context
-            }
+            if self.mem0_client is not None:
+                self.mem0_client.update("last_error", f"ModelRouter error: {str(e)}")
+            return ClueGenerateOutput(
+                clue=ClueData(
+                    description=str(prompt),
+                    details=str(e),
+                    significance=None,
+                    related_to=[],
+                    confidence=None,
+                    type="unknown"
+                ),
+                sources=[]
+            )
 
     def _llm_present_clue(self, clue: str, context: dict) -> str:
         """Present a clue in a way that matches the player's cognitive style."""

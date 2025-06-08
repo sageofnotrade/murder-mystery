@@ -405,4 +405,21 @@ class StoryService:
                 'current_scene': story['current_scene']
             }
         except Exception as e:
-            raise StoryError(f"Error making choice: {str(e)}") 
+            raise StoryError(f"Error making choice: {str(e)}")
+
+    def save_story_state_sync(self, story: 'StoryState', user_id: str) -> None:
+        """Synchronously save the current state of a story. Used for test compatibility."""
+        try:
+            if story.user_id != user_id:
+                raise StoryError("Unauthorized access to story", 403)
+            self.supabase.table('stories').update({
+                'current_scene': story.current_scene,
+                'narrative_history': json.dumps([n.dict() for n in story.narrative_history]),
+                'discovered_clues': json.dumps(story.discovered_clues),
+                'suspect_states': json.dumps(story.suspect_states)
+            }).eq('id', str(story.id)).execute()
+            self._cache_story(story)
+        except StoryError:
+            raise
+        except Exception as e:
+            raise StoryError(f"Error saving story state: {str(e)}") 

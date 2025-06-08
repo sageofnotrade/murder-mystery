@@ -6,7 +6,7 @@ Simple test runner to demonstrate AI agent test functionality.
 from pydantic import BaseModel
 import sys
 import json
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 
 class MinimalModelMessage(BaseModel):
     role: str
@@ -25,13 +25,14 @@ sys.path.append('.')
 from backend.agents.base_agent import BaseAgent
 from backend.agents.story_agent import StoryAgent
 from backend.agents.suspect_agent import SuspectAgent
-from backend.agents.clue_agent import ClueAgent
+from backend.agents.clue_agent import ClueAgent, ClueData, ClueGenerateOutput
 # Import our mock factories
 from backend.tests.mocks.llm_mock import (
     LLMMockFactory, 
     BraveSearchMockFactory, 
     Mem0MockFactory,
-    create_full_agent_mocks
+    create_full_agent_mocks,
+    PydanticAIMockFactory
 )
 
 def test_base_agent_memory_operations():
@@ -84,21 +85,50 @@ def test_suspect_agent_profile_generation():
 def test_clue_agent_analysis():
     """Test ClueAgent clue analysis."""
     print("🔍 Testing ClueAgent analysis...")
-    clue_json = '{"forensic_details": "Blood type matches victim", "significance": "9", "reliability": 0.85, "connections": ["Links to suspect"], "description": "Blood type matches victim", "details": "Detailed forensic analysis."}'
+    
+    # Create mock clue data
+    mock_clue_data = ClueData(
+        description="Blood type matches victim",
+        details="Detailed forensic analysis.",
+        significance="9",
+        related_to=["Links to suspect"],
+        confidence=0.85
+    )
+    
+    # Create mock output
+    mock_output = ClueGenerateOutput(
+        clue=mock_clue_data,
+        sources=["https://example.com/forensics"]
+    )
+    
     with patch('mem0.MemoryClient'), \
          patch('pydantic_ai.models.infer_model'), \
          patch('backend.agents.clue_agent.ModelRouter'), \
          patch.dict(os.environ, {"MEM0_API_KEY": "test_key"}):
-        clue_agent = ClueAgent(use_mem0=False, model_message_cls=MinimalModelMessage)
+        
+        # Create agent with mocked PydanticAI agent
+        clue_agent = ClueAgent(use_mem0=False, user_id="test_user", model_message_cls=MinimalModelMessage)
         assert isinstance(clue_agent, ClueAgent)
-        # Patch model_router.complete directly
-        clue_agent.model_router.complete = Mock(return_value=Mock(content=clue_json))
-        result = clue_agent._llm_generate_clue_data("Analyze clue", {}, [], "")
-        assert result.description == "Blood type matches victim"
-        assert result.details == "Detailed forensic analysis."
-        assert result.significance == "9"
-        assert result.confidence is None
-        assert result.related_to == []
+        
+        # Mock the PydanticAI agent's run_sync method
+        mock_agent = PydanticAIMockFactory.create_agent_mock()
+        clue_agent.pydantic_agent = mock_agent
+        
+        # Test clue generation
+        result = clue_agent.generate_clue("Analyze blood evidence", {
+            "crime_scene": "office",
+            "victim": "John Smith"
+        })
+        
+        # Verify result is a ClueOutput object
+        assert hasattr(result, 'clue')
+        assert hasattr(result, 'sources')
+        assert result.clue.description == "A bloodied letter opener found under the desk"
+        assert result.clue.details == "Forensic analysis shows fingerprints matching suspect John Doe"
+        assert result.clue.significance == "High - potential murder weapon"
+        assert result.clue.confidence == 0.9
+        assert "John Doe" in result.clue.related_to
+    
     print("✅ ClueAgent analysis test passed")
 def test_error_handling():
     """Test error handling in agents."""

@@ -6,49 +6,70 @@ import pytest
 import json
 from backend.agents.model_router import ModelRouter
 from pydantic_ai.messages import ModelMessage
+from backend.tests.mocks.redis_mock import MockRedisClient
 import redis
+from unittest.mock import patch, MagicMock
 
-@pytest.fixture(scope="module")
+class DummyMessage:
+    def __init__(self, role, content):
+        self.role = role
+        self.content = content
+
+class DummyResult:
+    def __init__(self, content):
+        self.content = content
+    def model_dump(self):
+        return {"content": self.content}
+
+@pytest.fixture
 def router():
     return ModelRouter()
 
 @pytest.fixture(scope="module")
 def redis_client():
-    REDIS_URL = "redis://localhost:6379/0"
-    return redis.from_url(REDIS_URL)
+    # Patch redis.from_url to use MockRedisClient
+    with patch('redis.from_url', return_value=MockRedisClient()):
+        yield MockRedisClient()
 
-def test_llm_cache_miss_and_set(router, redis_client, mocker):
-    # Clear cache
-    redis_client.flushdb()
-    # Mock model.complete to return a dummy result
-    dummy_result = {"content": "test output"}
-    mocker.patch.object(router.get_model_for_task("reasoning"), "complete", return_value=dummy_result)
-    messages = [Message(role="user", content="What is the capital of France?")]
-    # First call: should be a cache miss
+@patch('redis.from_url', return_value=MockRedisClient())
+def test_llm_cache_miss_and_set(mock_redis_from_url, router, mocker):
+    router.redis_client.flushdb()
+    dummy_result = DummyResult("test output")
+    mock_model = MagicMock()
+    mock_model.complete = MagicMock(return_value=dummy_result)
+    mocker.patch.object(router, "get_model_for_task", return_value=mock_model)
+    messages = [DummyMessage(role="user", content="What is the capital of France?")]
     result = router.complete(messages, "reasoning", user_id="test-user")
-    assert result == dummy_result
-    # Check cache directly
-    keys = list(redis_client.scan_iter("llm_cache:*"))
+    assert result.content == "test output"
+    keys = list(router.redis_client.scan_iter("llm_cache:*"))
     assert len(keys) == 1
-    cached = json.loads(redis_client.get(keys[0]))
-    assert cached == dummy_result
+    cached = json.loads(router.redis_client.get(keys[0]))
+    assert cached == {"content": "test output"}
 
-def test_llm_cache_hit(router, redis_client, mocker):
-    # Mock model.complete to raise if called (should not be called)
-    mocker.patch.object(router.get_model_for_task("reasoning"), "complete", side_effect=Exception("Should not call LLM on cache hit"))
-    messages = [Message(role="user", content="What is the capital of France?")]
-    # Second call: should be a cache hit
+@patch('redis.from_url', return_value=MockRedisClient())
+def test_llm_cache_hit(mock_redis_from_url, router, mocker):
+    # Prime the cache with a successful call
+    dummy_result = DummyResult("test output")
+    mock_model = MagicMock()
+    mock_model.complete = MagicMock(return_value=dummy_result)
+    mocker.patch.object(router, "get_model_for_task", return_value=mock_model)
+    messages = [DummyMessage(role="user", content="What is the capital of France?")]
+    router.complete(messages, "reasoning", user_id="test-user")
+    # Now patch to raise if called (should not be called)
+    mock_model.complete = MagicMock(side_effect=Exception("Should not call LLM on cache hit"))
+    mocker.patch.object(router, "get_model_for_task", return_value=mock_model)
     result = router.complete(messages, "reasoning", user_id="test-user")
     assert result["content"] == "test output"
 
-def test_llm_cache_fallback_on_corruption(router, redis_client, mocker):
-    # Corrupt the cache
-    keys = list(redis_client.scan_iter("llm_cache:*"))
+@patch('redis.from_url', return_value=MockRedisClient())
+def test_llm_cache_fallback_on_corruption(mock_redis_from_url, router, mocker):
+    keys = list(router.redis_client.scan_iter("llm_cache:*"))
     if keys:
-        redis_client.set(keys[0], b"not-json")
-    # Mock model.complete to return a new dummy result
-    dummy_result2 = {"content": "new output"}
-    mocker.patch.object(router.get_model_for_task("reasoning"), "complete", return_value=dummy_result2)
-    messages = [Message(role="user", content="What is the capital of France?")]
+        router.redis_client.set(keys[0], b"not-json")
+    dummy_result2 = DummyResult("new output")
+    mock_model = MagicMock()
+    mock_model.complete = MagicMock(return_value=dummy_result2)
+    mocker.patch.object(router, "get_model_for_task", return_value=mock_model)
+    messages = [DummyMessage(role="user", content="What is the capital of France?")]
     result = router.complete(messages, "reasoning", user_id="test-user")
-    assert result == dummy_result2
+    assert result.content == "new output"

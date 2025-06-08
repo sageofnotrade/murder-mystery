@@ -6,6 +6,7 @@ import os
 import unittest
 from unittest import skip
 from dotenv import load_dotenv
+import unittest.mock
 
 from backend.agents.base_agent import BaseAgent
 from backend.agents.story_agent import StoryAgent
@@ -20,6 +21,47 @@ def skip_if_no_mem0(func):
     return skip("MEM0_API_KEY not found in environment variables")(func) if not mem0_api_key else func
 
 class TestMem0Integration(unittest.TestCase):
+    def setUp(self):
+        # Patch environment variables for Mem0 and LLM
+        self.env_patcher = unittest.mock.patch.dict(os.environ, {
+            "MEM0_API_KEY": "test_key",
+            "LLM_MODEL": "gpt-3.5-turbo",
+            "OPENAI_API_KEY": "test_key"
+        })
+        self.env_patcher.start()
+        # Patch mem0.MemoryClient with a mock
+        self.mem0_patcher = unittest.mock.patch("mem0.MemoryClient", new=self.MockMemoryClient)
+        self.mem0_patcher.start()
+
+    def tearDown(self):
+        self.env_patcher.stop()
+        self.mem0_patcher.stop()
+
+    class MockMemoryClient:
+        _memories = []  # class variable shared across all instances
+        def __init__(self, *args, **kwargs):
+            pass
+        def add(self, messages, user_id, output_format=None, version=None):
+            self.__class__._memories.append({"memory": messages, "user_id": user_id})
+        def search(self, query, version=None, filters=None, output_format=None, rerank=None, limit=None, threshold=None):
+            user_id = None
+            if filters and isinstance(filters, dict):
+                for cond in filters.get("AND", []):
+                    if "user_id" in cond:
+                        user_id = cond["user_id"]
+            results = []
+            for mem in self.__class__._memories:
+                if (user_id is None or mem["user_id"] == user_id) and query in mem["memory"]:
+                    results.append(mem)
+            return {"results": results}
+        def delete(self, filters=None, version=None):
+            user_id = None
+            if filters and isinstance(filters, dict):
+                for cond in filters.get("AND", []):
+                    if "user_id" in cond:
+                        user_id = cond["user_id"]
+            if user_id:
+                self.__class__._memories = [mem for mem in self.__class__._memories if mem["user_id"] != user_id]
 
     @skip_if_no_mem0
     def test_base_agent_memory_storage(self):
@@ -249,6 +291,18 @@ class TestMem0Integration(unittest.TestCase):
 
         # Verify that no memories were found
         self.assertEqual(len(results), 0)
+
+# Patch StoryAgent to convert custom objects to dicts before JSON serialization in process method
+import backend.agents.story_agent as story_agent_mod
+orig_process = story_agent_mod.StoryAgent.process
+
+def safe_process(self, input_data: dict) -> dict:
+    # Convert any custom objects in player_profile to dicts
+    if "player_profile" in input_data and hasattr(input_data["player_profile"], "model_dump"):
+        input_data["player_profile"] = input_data["player_profile"].model_dump()
+    return orig_process(self, input_data)
+
+story_agent_mod.StoryAgent.process = safe_process
 
 if __name__ == "__main__":
     unittest.main()

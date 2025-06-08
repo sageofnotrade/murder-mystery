@@ -1,9 +1,14 @@
 from unittest.mock import MagicMock
+import re
 
 class MockRedisClient:
     def __init__(self):
         self.data = {}
         self.mock = MagicMock()
+
+    def set(self, key, value, **kwargs):
+        self.data[key] = value
+        return self.mock.set(key, value)
 
     def setex(self, key, ttl, value):
         self.data[key] = value
@@ -25,4 +30,17 @@ class MockRedisClient:
 
     def flushall(self):
         self.data.clear()
-        return self.mock.flushall() 
+        return self.mock.flushall()
+
+    def flushdb(self):
+        self.flushall()
+
+    def scan_iter(self, pattern=None):
+        if pattern is None:
+            for key in self.data:
+                yield key
+        else:
+            regex = re.compile('^' + pattern.replace('*', '.*') + '$')
+            for key in self.data:
+                if regex.match(key):
+                    yield key 

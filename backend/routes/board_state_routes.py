@@ -14,6 +14,9 @@ import json
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 redis_client = redis.from_url(REDIS_URL)
 
+def get_redis_client():
+    return redis_client
+
 board_state_bp = Blueprint("board_state", __name__, url_prefix="/api/board")
 
 # Helper: Redis key for board state
@@ -26,7 +29,7 @@ def get_board_redis_key(mystery_id):
 @jwt_required()
 def get_board_state(mystery_id):
     key = get_board_redis_key(mystery_id)
-    data = redis_client.get(key)
+    data = get_redis_client().get(key)
     if not data:
         return jsonify({"error": "Board state not found"}), 404
     try:
@@ -55,7 +58,7 @@ def sync_board_state(mystery_id):
     except Exception as e:
         return jsonify({"error": f"Invalid board_state: {str(e)}"}), 400
     key = get_board_redis_key(mystery_id)
-    redis_client.set(key, json.dumps(board_state))
+    get_redis_client().set(key, json.dumps(board_state))
     return jsonify({"status": "ok", "board_state": board_state})
 
 # (Optional) PUT: Replace board state
@@ -71,5 +74,5 @@ def replace_board_state(mystery_id):
     except Exception as e:
         return jsonify({"error": f"Invalid board_state: {str(e)}"}), 400
     key = get_board_redis_key(mystery_id)
-    redis_client.set(key, json.dumps(board_state))
+    get_redis_client().set(key, json.dumps(board_state))
     return jsonify({"status": "ok", "board_state": board_state})

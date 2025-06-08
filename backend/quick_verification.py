@@ -95,7 +95,7 @@ def check_implementation():
     with open('app.py', 'r') as f:
         app_content = f.read()
     
-    if 'from routes.suspect_routes import suspect_bp' in app_content and 'app.register_blueprint(suspect_bp' in app_content:
+    if 'from backend.routes.suspect_routes import suspect_bp' in app_content and 'app.register_blueprint(suspect_bp' in app_content:
         print("✅ Integration: Routes registered in app.py")
     else:
         print("❌ Integration: Routes not properly registered")

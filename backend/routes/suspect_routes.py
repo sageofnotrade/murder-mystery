@@ -5,6 +5,7 @@ from backend.services.supabase_service import get_supabase_client
 from backend.agents.suspect_agent import SuspectState, SuspectProfile
 from pydantic import ValidationError
 import logging
+from werkzeug.exceptions import BadRequest
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ def get_suspect_service():
     """Get a SuspectService instance with the current Supabase client."""
     return SuspectService(get_supabase_client())
 
-@suspect_bp.route('/api/suspects', methods=['GET'])
+@suspect_bp.route('/suspects', methods=['GET'])
 @jwt_required()
 async def get_suspects():
     """Get all suspects for the current user/story."""
@@ -34,7 +35,7 @@ async def get_suspects():
         logger.error(f"Error getting suspects: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@suspect_bp.route('/api/suspects/<suspect_id>', methods=['GET'])
+@suspect_bp.route('/suspects/<suspect_id>', methods=['GET'])
 @jwt_required()
 async def get_suspect(suspect_id):
     """Get a specific suspect profile."""
@@ -56,7 +57,7 @@ async def get_suspect(suspect_id):
         logger.error(f"Error getting suspect {suspect_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@suspect_bp.route('/api/suspects', methods=['POST'])
+@suspect_bp.route('/suspects', methods=['POST'])
 @jwt_required()
 async def create_suspect():
     """Create a new suspect."""
@@ -64,7 +65,10 @@ async def create_suspect():
     suspect_service = get_suspect_service()
     
     try:
-        data = request.get_json()
+        try:
+            data = request.get_json(force=True, silent=True)
+        except BadRequest:
+            return jsonify({'error': 'Request body is required'}), 400
         if not data:
             return jsonify({'error': 'Request body is required'}), 400
         
@@ -76,7 +80,7 @@ async def create_suspect():
         logger.error(f"Error creating suspect: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@suspect_bp.route('/api/suspects/<suspect_id>/dialogue', methods=['POST'])
+@suspect_bp.route('/suspects/<suspect_id>/dialogue', methods=['POST'])
 @jwt_required()
 async def post_dialogue(suspect_id):
     """Post dialogue and get suspect response."""
@@ -112,7 +116,7 @@ async def post_dialogue(suspect_id):
         logger.error(f"Error posting dialogue to suspect {suspect_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@suspect_bp.route('/api/suspects/<suspect_id>/verify-alibi', methods=['POST'])
+@suspect_bp.route('/suspects/<suspect_id>/verify-alibi', methods=['POST'])
 @jwt_required()
 async def verify_alibi(suspect_id):
     """Verify suspect alibi."""
@@ -145,7 +149,7 @@ async def verify_alibi(suspect_id):
         logger.error(f"Error verifying alibi for suspect {suspect_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@suspect_bp.route('/api/suspects/<suspect_id>/state', methods=['GET'])
+@suspect_bp.route('/suspects/<suspect_id>/state', methods=['GET'])
 @jwt_required()
 async def get_suspect_state(suspect_id):
     """Get the current investigation state of a suspect."""
@@ -167,7 +171,7 @@ async def get_suspect_state(suspect_id):
         logger.error(f"Error getting suspect state {suspect_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@suspect_bp.route('/api/suspects/<suspect_id>/state', methods=['PUT'])
+@suspect_bp.route('/suspects/<suspect_id>/state', methods=['PUT'])
 @jwt_required()
 async def update_suspect_state(suspect_id):
     """Update the investigation state of a suspect."""
@@ -199,7 +203,7 @@ async def update_suspect_state(suspect_id):
         logger.error(f"Error updating suspect state {suspect_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@suspect_bp.route('/api/suspects/<suspect_id>/motives', methods=['GET'])
+@suspect_bp.route('/suspects/<suspect_id>/motives', methods=['GET'])
 @jwt_required()
 async def explore_motives(suspect_id):
     """Explore potential motives for a suspect."""
@@ -225,7 +229,7 @@ async def explore_motives(suspect_id):
         logger.error(f"Error exploring motives for suspect {suspect_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@suspect_bp.route('/api/suspects/<suspect_id>/generate', methods=['POST'])
+@suspect_bp.route('/suspects/<suspect_id>/generate', methods=['POST'])
 @jwt_required()
 async def generate_suspect_profile(suspect_id):
     """Generate or regenerate a suspect profile using AI."""
