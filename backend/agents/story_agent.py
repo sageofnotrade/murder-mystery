@@ -129,12 +129,12 @@ class StoryAgent(BaseAgent):
 
     def _create_pydantic_agent(self):
         """Create and configure the PydanticAI agent."""
-        # Determine which model to use based on environment variables
-        model_name = os.getenv("LLM_MODEL", "openai:gpt-4o")
-
+        # Use the model router to get the appropriate model
+        model = self.model_router.get_model_for_task("writing")
+        
         # Create the agent with appropriate system prompt
         agent = PydanticAgent(
-            model_name,
+            model=model,  # Use the model from the router
             deps_type=StoryAgentDependencies,
             output_type=Union[StoryAgentOutput, StoryAgentGenerateOutput],
             system_prompt=(
@@ -657,6 +657,8 @@ class StoryAgent(BaseAgent):
         1. First, use deepseek-r1t-chimera to analyze and plan the narrative (reasoning)
         2. Then, use mistral-nemo to write the actual narrative (writing)
         """
+        import json
+
         # Helper to recursively convert Pydantic models to dicts
         def to_json_dict(obj):
             if hasattr(obj, 'model_dump'):
@@ -686,9 +688,10 @@ class StoryAgent(BaseAgent):
         # Convert context to JSON-safe dict
         context_json = to_json_dict(context)
 
-        # Use the model router to generate the narrative
         try:
             context_str = json.dumps(context_json, indent=2)
+
+            # STEP 1: Use reasoning model to create a plan
             planning_messages = [
                 self.model_message_cls(
                     role="system",
@@ -709,40 +712,95 @@ class StoryAgent(BaseAgent):
                 temperature=0.3,
                 max_tokens=800
             )
+
             if self.use_mem0 and self.mem0_config.get("track_performance", True):
                 self.update_memory("narrative_planning_response", str(planning_response.content)[:500])
                 self.update_memory("narrative_planning_model", self.model_router.get_model_name_for_task("reasoning"))
+
             narrative_plan = planning_response.content
             if not narrative_plan:
                 if self.use_mem0:
                     self.update_memory("last_error", "Empty narrative planning response from LLM")
                 narrative_plan = f"The player has decided to {action}. This advances the investigation."
-            # Now use the writing model to generate the actual narrative
-            writing_messages = [
-                self.model_message_cls(
-                    role="system",
-                    content=(
-                        "You are a creative mystery writer specializing in detective fiction. "
-                        "Write a detailed narrative based on the plan and context.\n"
-                        f"Plan:\n{narrative_plan}\nContext:\n{context_str}"
-                    )
-                ),
-                self.model_message_cls(
-                    role="user",
-                    content=action
+
+            # STEP 2: Use writing model to generate the narrative
+            formatted_adaptations = context.get("psychological_adaptations", "")
+            psychological_guidelines = context.get("psychological_guidelines", "")
+
+            if player_role == "detective":
+                writing_system_prompt = (
+                    "You are an expert detective fiction writer creating an interactive mystery story. "
+                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
+                    "The player is a DETECTIVE investigating the case. "
+                    "Write in second person perspective ('You notice...', 'You decide...'). "
+                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
+                    "The tone should match the psychological profile of the player.\n"
+                    f"\nPsychological Adaptations (for writing):\n{formatted_adaptations}\n{psychological_guidelines}"
                 )
+            elif player_role == "suspect":
+                writing_system_prompt = (
+                    "You are an expert mystery writer creating an interactive story. "
+                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
+                    "The player is a SUSPECT in the case, trying to navigate the investigation while hiding or revealing their own involvement. "
+                    "Write in second person perspective ('You notice...', 'You decide...'). "
+                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
+                    "The tone should match the psychological profile of the player.\n"
+                    f"\nPsychological Adaptations (for writing):\n{formatted_adaptations}\n{psychological_guidelines}"
+                )
+            elif player_role == "witness":
+                writing_system_prompt = (
+                    "You are an expert mystery writer creating an interactive story. "
+                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
+                    "The player is a WITNESS to the crime, with their own perspective and potentially crucial information. "
+                    "Write in second person perspective ('You notice...', 'You decide...'). "
+                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
+                    "The tone should match the psychological profile of the player.\n"
+                    f"\nPsychological Adaptations (for writing):\n{formatted_adaptations}\n{psychological_guidelines}"
+                )
+            else:
+                writing_system_prompt = (
+                    "You are an expert mystery writer creating an interactive story. "
+                    "Generate the next part of the narrative based on the player's action and the provided narrative plan. "
+                    f"The player is a {player_role.upper()} in the mystery. "
+                    "Write in second person perspective ('You notice...', 'You decide...'). "
+                    "Keep the narrative tense, atmospheric, and intriguing. Include sensory details and character reactions. "
+                    "The tone should match the psychological profile of the player.\n"
+                    f"\nPsychological Adaptations (for writing):\n{formatted_adaptations}\n{psychological_guidelines}"
+                )
+
+            writing_user_prompt = (
+                f"The player has decided to: {action}\n\n"
+                f"Based on this narrative plan, write the next part of the story (2-3 paragraphs):\n\n{narrative_plan}"
+            )
+
+            writing_messages = [
+                {"role": "system", "content": writing_system_prompt},
+                {"role": "user", "content": writing_user_prompt}
             ]
+
             writing_response = self.model_router.complete(
                 messages=writing_messages,
                 task_type="writing",
                 temperature=0.7,
-                max_tokens=1200
+                max_tokens=500
             )
-            return writing_response.content
+
+            if self.use_mem0 and self.mem0_config.get("track_performance", True):
+                self.update_memory("narrative_writing_response", str(writing_response.content)[:500])
+                self.update_memory("narrative_writing_model", self.model_router.get_model_name_for_task("writing"))
+
+            narrative = writing_response.content
+
+            if not narrative:
+                if self.use_mem0:
+                    self.update_memory("last_error", "Empty narrative writing response from LLM")
+                return f"You decided to {action}. The investigation continues as you search for more clues."
+
+            return narrative
+
         except Exception as e:
-            if self.use_mem0:
-                self.update_memory("last_error", f"Narrative generation error: {str(e)}")
-            return f"[Error generating narrative: {str(e)}]"
+            print(f"Error generating narrative: {str(e)}")
+            return "The story continues..."
 
     def _extract_potential_clue(self, action: str, narrative: str) -> Optional[str]:
         """

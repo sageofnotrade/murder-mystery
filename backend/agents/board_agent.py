@@ -134,82 +134,19 @@ class BoardAgent(BaseAgent):
         self.dependencies = BoardAgentDependencies(memory, use_mem0, user_id, mem0_config)
 
     def _create_pydantic_agent(self):
-        """Create and configure the PydanticAI agent."""
-        # Determine which model to use based on environment variables
-        model_name = os.getenv("LLM_MODEL", "openai:gpt-4o")
-
-        # Create the agent with appropriate system prompt
+        """Create a PydanticAgent for board state generation"""
         agent = PydanticAgent(
-            model_name,
-            deps_type=BoardAgentDependencies,
-            output_type=Union[BoardUpdateOutput, BoardGenerateOutput],
-            system_prompt=(
-                "You are a detective specializing in visual investigation boards. "
-                "Create and update detective boards that visually represent cases, evidence, suspects, and connections. "
-                "Focus on clear visual organization, logical connections between elements, and highlighting key relationships. "
-                "Your board updates should help investigators see patterns and connections they might otherwise miss."
-            ),
-            retries=2  # Allow retries for better error handling
+            model="openai:gpt-3.5-turbo",  # Using a model that PydanticAI recognizes
+            system_prompt="""You are an expert in managing game board states for mystery stories.
+            Your task is to generate and update board states that reflect the current state of the investigation.
+            Each board state should:
+            - Track discovered clues and their locations
+            - Monitor suspect interviews and their outcomes
+            - Record player progress and available actions
+            - Maintain consistency with the story's timeline
+            - Provide clear status updates for the player""",
+            allow_retries=True
         )
-
-        # Register tools for the agent
-        @agent.tool
-        async def brave_search(ctx: RunContext[BoardAgentDependencies], query: str) -> list[dict]:
-            """Search the web for information related to the query."""
-            return self._brave_search(query)
-
-        @agent.tool
-        async def generate_board_update(
-            ctx: RunContext[BoardAgentDependencies],
-            prompt: str,
-            context: dict = None,
-            search_results: list[dict] = None
-        ) -> dict:
-            """Generate a board state update based on the prompt and context."""
-            search_results = search_results or self._brave_search(prompt)
-            return self._llm_generate_board_update(prompt, context or {}, search_results)
-
-        @agent.tool
-        async def create_board_element(
-            ctx: RunContext[BoardAgentDependencies],
-            element_type: str,
-            title: str,
-            description: str = None,
-            properties: dict = None
-        ) -> BoardElement:
-            """Create a new board element with the specified properties."""
-            import uuid
-            element_id = f"{element_type}_{uuid.uuid4().hex[:8]}"
-            return BoardElement(
-                id=element_id,
-                type=element_type,
-                title=title,
-                description=description,
-                position={"x": 0, "y": 0},  # Default position
-                properties=properties or {}
-            )
-
-        @agent.tool
-        async def create_board_connection(
-            ctx: RunContext[BoardAgentDependencies],
-            source_id: str,
-            target_id: str,
-            connection_type: str,
-            label: str = None,
-            strength: float = 1.0
-        ) -> BoardConnection:
-            """Create a new connection between board elements."""
-            import uuid
-            connection_id = f"connection_{uuid.uuid4().hex[:8]}"
-            return BoardConnection(
-                id=connection_id,
-                source_id=source_id,
-                target_id=target_id,
-                type=connection_type,
-                label=label,
-                strength=strength
-            )
-
         return agent
 
     def generate_board(self, prompt: str, context: dict = None) -> BoardGenerateOutput:
