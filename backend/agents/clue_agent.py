@@ -209,7 +209,11 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
                 try:
                     # Try to parse the output as JSON
                     if isinstance(result.output, str):
-                        clue_data = json.loads(result.output)
+                        # Clean up the string before parsing
+                        json_str = result.output.strip()
+                        # Remove any trailing commas
+                        json_str = json_str.rstrip(',')
+                        clue_data = json.loads(json_str)
                     else:
                         clue_data = result.output
 
@@ -225,6 +229,7 @@ Remember: Your response MUST be a valid JSON object matching this format exactly
                     return ClueOutput(clue=clue.model_dump(), sources=[])
                 except (json.JSONDecodeError, AttributeError) as e:
                     print(f"[DEBUG] ClueAgent exception in JSON parsing: {e}")
+                    print(f"[DEBUG] ClueAgent raw JSON string: {repr(result.output)}")
                     # Fall back to the original clue data
                     if hasattr(result.output, 'clue'):
                         if isinstance(result.output, ClueGenerateOutput):
