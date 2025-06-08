@@ -67,40 +67,53 @@ const loadQuestionnaire = async () => {
     loading.value = true;
     error.value = null;
     
-    // In a real implementation, you would fetch this from an API
-    // For now, we'll use a static structure
+    // Murder Mystery Big Five Personality Questionnaire
     questionnaire.value = {
       sections: [
         {
-          title: "Problem-Solving Style",
-          description: "How do you approach challenges?",
+          title: "🧠 Openness (Imagination, Curiosity, Aesthetics)",
+          description: "Answer the following as truthfully as you dare... the mystery depends on it.",
           questions: [
             {
-              id: "problem_solving_1",
-              type: "multiple-choice",
-              question: "When faced with a complex problem, you prefer to:",
-              options: [
-                "Break it down into smaller parts",
-                "Look for patterns and connections",
-                "Trust your intuition",
-                "Consult others for their perspective"
-              ]
-            },
-            {
-              id: "problem_solving_2",
-              type: "multiple-choice",
-              question: "When you're stuck on a problem, your first instinct is to:",
-              options: [
-                "Research similar problems and their solutions",
-                "Take a break and return with fresh eyes",
-                "Discuss it with someone else",
-                "Try a completely different approach"
-              ]
-            },
-            {
-              id: "problem_solving_3",
+              id: "openness_1",
               type: "slider",
-              question: "I prefer to plan everything in detail rather than adapt as I go.",
+              question: "I enjoy unraveling complex puzzles or riddles, even if there's no reward.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "openness_2",
+              type: "slider",
+              question: "I find myself imagining alternate endings to stories—especially murders.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "openness_3",
+              type: "slider",
+              question: "I enjoy exploring strange theories and possibilities, no matter how wild.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "openness_4",
+              type: "slider",
+              question: "A quirky, eccentric character usually catches my attention more than a traditional hero.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "openness_5",
+              type: "slider",
+              question: "I often notice tiny details that others overlook, even in chaotic situations.",
               min: 1,
               max: 5,
               minLabel: "Strongly Disagree",
@@ -109,66 +122,49 @@ const loadQuestionnaire = async () => {
           ]
         },
         {
-          title: "Moral Compass",
-          description: "How do you make ethical decisions?",
+          title: "📋 Conscientiousness (Organization, Discipline, Duty)",
+          description: "How do you approach tasks and responsibilities?",
           questions: [
             {
-              id: "moral_1",
+              id: "conscientiousness_1",
               type: "slider",
-              question: "Justice should always be served, even if it causes harm to innocent people.",
+              question: "I prefer having a clear plan before taking action, especially under pressure.",
               min: 1,
               max: 5,
               minLabel: "Strongly Disagree",
               maxLabel: "Strongly Agree"
             },
             {
-              id: "moral_2",
-              type: "multiple-choice",
-              question: "When someone commits a crime, which is more important?",
-              options: [
-                "Understanding why they did it",
-                "Making sure they face consequences",
-                "Rehabilitating them to prevent future crimes",
-                "Protecting society from them"
-              ]
-            },
-            {
-              id: "moral_3",
-              type: "open-ended",
-              question: "Describe a situation where breaking the rules might be justified.",
-              placeholder: "Share your perspective...",
-              maxLength: 300
-            }
-          ]
-        },
-        {
-          title: "Risk Tolerance",
-          description: "How do you approach uncertain situations?",
-          questions: [
-            {
-              id: "risk_1",
+              id: "conscientiousness_2",
               type: "slider",
-              question: "I enjoy situations with an element of danger or risk.",
+              question: "I take notes and keep records, even when others call it \"obsessive.\"",
               min: 1,
               max: 5,
               minLabel: "Strongly Disagree",
               maxLabel: "Strongly Agree"
             },
             {
-              id: "risk_2",
-              type: "multiple-choice",
-              question: "When making an important decision, you prioritize:",
-              options: [
-                "Avoiding potential negative outcomes",
-                "Maximizing potential benefits",
-                "Finding a balanced approach",
-                "Following established procedures"
-              ]
+              id: "conscientiousness_3",
+              type: "slider",
+              question: "I feel a strong need to see tasks through to the end—even in the face of danger.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
             },
             {
-              id: "risk_3",
+              id: "conscientiousness_4",
               type: "slider",
-              question: "I prefer familiar environments over new and unpredictable ones.",
+              question: "I get frustrated when others act recklessly or break the rules.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "conscientiousness_5",
+              type: "slider",
+              question: "I double-check clues and facts before jumping to conclusions.",
               min: 1,
               max: 5,
               minLabel: "Strongly Disagree",
@@ -177,70 +173,155 @@ const loadQuestionnaire = async () => {
           ]
         },
         {
-          title: "Social Interaction",
-          description: "How do you engage with others?",
+          title: "🎭 Extraversion (Sociability, Energy, Boldness)",
+          description: "How do you interact with others and handle social situations?",
           questions: [
             {
-              id: "social_1",
-              type: "multiple-choice",
-              question: "In group settings, you typically:",
-              options: [
-                "Take charge and lead discussions",
-                "Listen carefully and speak when necessary",
-                "Observe people's behaviors and interactions",
-                "Connect individually with specific people"
-              ]
-            },
-            {
-              id: "social_2",
+              id: "extraversion_1",
               type: "slider",
-              question: "I find it easy to tell when someone is hiding something.",
+              question: "I feel energized when I talk to new people, even potential suspects.",
               min: 1,
               max: 5,
               minLabel: "Strongly Disagree",
               maxLabel: "Strongly Agree"
             },
             {
-              id: "social_3",
-              type: "open-ended",
-              question: "How do you typically respond when you catch someone in a lie?",
-              placeholder: "Describe your typical reaction...",
-              maxLength: 300
+              id: "extraversion_2",
+              type: "slider",
+              question: "I would volunteer to question a shady character without hesitation.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "extraversion_3",
+              type: "slider",
+              question: "I enjoy being in the center of the action—even in dramatic or tense scenes.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "extraversion_4",
+              type: "slider",
+              question: "I tend to act on instinct in the heat of the moment.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "extraversion_5",
+              type: "slider",
+              question: "I prefer working with a group over investigating alone.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
             }
           ]
         },
         {
-          title: "Mystery Preferences",
-          description: "What elements do you enjoy in mystery stories?",
+          title: "🤝 Agreeableness (Empathy, Cooperation, Compassion)",
+          description: "How do you approach relationships and conflicts?",
           questions: [
             {
-              id: "mystery_1",
-              type: "multiple-choice",
-              question: "Which aspect of mystery stories do you find most compelling?",
-              options: [
-                "Complex puzzles to solve",
-                "Psychological depth of characters",
-                "Suspenseful atmosphere and tension",
-                "Moral dilemmas and ethical questions"
-              ]
+              id: "agreeableness_1",
+              type: "slider",
+              question: "I often give people the benefit of the doubt—even if they look suspicious.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
             },
             {
-              id: "mystery_2",
-              type: "multiple-choice",
-              question: "Which setting would you prefer for a murder mystery?",
-              options: [
-                "An isolated country manor",
-                "A bustling metropolitan city",
-                "A small town where everyone knows each other",
-                "An exotic location or unusual environment"
-              ]
+              id: "agreeableness_2",
+              type: "slider",
+              question: "I try to keep the peace, even if it means sacrificing my own theory.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
             },
             {
-              id: "mystery_3",
-              type: "open-ended",
-              question: "Describe your ideal detective or investigator character.",
-              placeholder: "Share what traits or characteristics you prefer...",
-              maxLength: 300
+              id: "agreeableness_3",
+              type: "slider",
+              question: "I feel bad accusing someone without solid evidence.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "agreeableness_4",
+              type: "slider",
+              question: "I'm more interested in understanding motives than just finding \"whodunit.\"",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "agreeableness_5",
+              type: "slider",
+              question: "I would help a fellow detective cover a mistake to spare them embarrassment.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            }
+          ]
+        },
+        {
+          title: "🌀 Neuroticism (Emotional Stability, Anxiety, Sensitivity)",
+          description: "How do you handle stress and emotional challenges?",
+          questions: [
+            {
+              id: "neuroticism_1",
+              type: "slider",
+              question: "I often second-guess myself after making a decision.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "neuroticism_2",
+              type: "slider",
+              question: "I get nervous when the pressure is on—even if I'm sure I'm right.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "neuroticism_3",
+              type: "slider",
+              question: "I take things personally when suspects lie or hide the truth.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "neuroticism_4",
+              type: "slider",
+              question: "I sometimes lose sleep over mysteries left unsolved.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
+            },
+            {
+              id: "neuroticism_5",
+              type: "slider",
+              question: "I worry about missing something obvious and looking like a fool.",
+              min: 1,
+              max: 5,
+              minLabel: "Strongly Disagree",
+              maxLabel: "Strongly Agree"
             }
           ]
         }
