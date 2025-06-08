@@ -38,7 +38,7 @@ class ModelRouter:
         
         # Initialize models
         self.reasoning_model = OpenAIModel(
-            'tngtech/deepseek-r1t-chimera:free',
+            'deepseek/deepseek-r1-0528-qwen3-8b:free',
             provider=self.provider,
         )
         

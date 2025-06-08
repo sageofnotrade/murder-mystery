@@ -130,10 +130,12 @@ class SuspectAgent(BaseAgent):
 
     def _create_pydantic_agent(self):
         """Create and configure the PydanticAI agent."""
-        # Determine which model to use based on environment variables
-        model_name = os.getenv("LLM_MODEL", "openai:gpt-4o")
-
-        # Create the agent with appropriate system prompt
+        import os
+        if os.getenv("TEST_ENV"):
+            model_name = "openai:gpt-3.5-turbo"
+        else:
+            model_name = os.getenv("LLM_MODEL", "openai:gpt-4o")
+        # Do not reassign model_name after this point
         agent = PydanticAgent(
             model_name,
             deps_type=SuspectAgentDependencies,

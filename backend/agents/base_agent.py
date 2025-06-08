@@ -32,6 +32,14 @@ class BaseAgent:
             user_id: User ID for Mem0 (required if use_mem0 is True)
             mem0_config: Optional configuration for Mem0
         """
+        if os.getenv("TEST_ENV"):
+            self.agent_name = agent_name
+            self.use_mem0 = False
+            self.user_id = user_id
+            self.mem0_client = None
+            self.mem0_config = {}
+            return
+        
         self.agent_name = agent_name
         self.use_mem0 = use_mem0
         self.user_id = user_id
@@ -83,6 +91,11 @@ class BaseAgent:
             except ImportError:
                 logger.warning("mem0 package not installed. Disabling Mem0 integration.")
                 self.use_mem0 = False
+        
+        # After all assignments, force disable Mem0 in test env
+        if os.getenv("TEST_ENV"):
+            self.use_mem0 = False
+            self.mem0_client = None
     
     def update_memory(self, key: str, value: str) -> bool:
         """
