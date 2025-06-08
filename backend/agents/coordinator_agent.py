@@ -154,70 +154,17 @@ class CoordinatorAgent(BaseAgent):
         self.dependencies = CoordinatorAgentDependencies(memory, use_mem0, user_id, mem0_config)
 
     def _create_pydantic_agent(self):
-        """Create and configure the PydanticAI agent."""
-        # Determine which model to use based on environment variables
-        model_name = os.getenv("LLM_MODEL", "openai:gpt-4o")
-
-        # Create the agent with appropriate system prompt
+        """Create a PydanticAgent for coordination tasks"""
         agent = PydanticAgent(
-            model_name,
-            deps_type=CoordinatorAgentDependencies,
-            output_type=Union[CoordinatorOutput, SynchronizationResult],
-            system_prompt=(
-                "You are a coordination expert responsible for maintaining consistency across multiple AI agents. "
-                "Your job is to detect and resolve conflicts between agent outputs, ensure global consistency, "
-                "and orchestrate communication between agents. You excel at identifying logical inconsistencies "
-                "and finding optimal resolutions that preserve the integrity of the overall system."
-            ),
-            retries=2  # Allow retries for better error handling
+            model="openai:gpt-3.5-turbo",  # Using a model that PydanticAI recognizes
+            system_prompt="""You are an expert coordinator for mystery stories.
+            Your task is to manage the flow of the investigation, ensuring that:
+            - Player actions are properly handled
+            - Story progression is logical and engaging
+            - Clues and suspects are introduced at appropriate times
+            - The mystery remains challenging but solvable""",
+            allow_retries=True
         )
-
-        # Register tools for the agent
-        @agent.tool
-        async def brave_search(ctx: RunContext[CoordinatorAgentDependencies], query: str) -> list[dict]:
-            """Search the web for information related to the query."""
-            return self._brave_search(query)
-
-        @agent.tool
-        async def detect_conflicts(
-            ctx: RunContext[CoordinatorAgentDependencies],
-            states: Dict[str, Dict[str, Any]]
-        ) -> List[Dict[str, Any]]:
-            """Detect conflicts between agent states."""
-            return self._detect_conflicts(states)
-
-        @agent.tool
-        async def resolve_conflict(
-            ctx: RunContext[CoordinatorAgentDependencies],
-            conflict: Dict[str, Any],
-            states: Dict[str, Dict[str, Any]]
-        ) -> ConflictResolution:
-            """Resolve a conflict between agent states."""
-            return self._resolve_conflict(conflict, states)
-
-        @agent.tool
-        async def search_memories(
-            ctx: RunContext[CoordinatorAgentDependencies],
-            query: str,
-            limit: int = 3,
-            threshold: float = 0.7,
-            rerank: bool = True
-        ) -> list[dict]:
-            """Search memories based on the query."""
-            if ctx.deps.use_mem0:
-                return ctx.deps.search_memories(query, limit, threshold, rerank)
-            return []
-
-        @agent.tool
-        async def update_memory(
-            ctx: RunContext[CoordinatorAgentDependencies],
-            key: str,
-            value: str
-        ) -> None:
-            """Update memory with key-value pair."""
-            if ctx.deps.use_mem0:
-                ctx.deps.update_memory(key, value)
-
         return agent
 
     def synchronize(self, input_data: dict) -> dict:
@@ -388,8 +335,8 @@ class CoordinatorAgent(BaseAgent):
 
         # Prepare messages for the model
         messages = [
-            ModelMessage(role="system", content=system_prompt),
-            ModelMessage(role="user", content=user_prompt)
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ]
 
         try:
@@ -606,8 +553,8 @@ class CoordinatorAgent(BaseAgent):
 
         # Prepare messages for the model
         messages = [
-            ModelMessage(role="system", content=system_prompt),
-            ModelMessage(role="user", content=user_prompt)
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ]
 
         try:
@@ -981,8 +928,8 @@ class CoordinatorAgent(BaseAgent):
 
         # Prepare messages for the model
         messages = [
-            ModelMessage(role="system", content=system_prompt),
-            ModelMessage(role="user", content=user_prompt)
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ]
 
         try:

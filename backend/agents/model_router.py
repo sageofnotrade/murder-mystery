@@ -30,22 +30,52 @@ class ModelRouter:
         self.api_base = os.getenv("LLM_API_BASE") or "https://openrouter.ai/api/v1"
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         
-        # Create provider for OpenRouter
+        # Debug print for API key (do not log in production)
+        print("[DEBUG] OPENROUTER_API_KEY loaded:", self.api_key)
+        
+        if not self.api_key or self.api_key.strip() == "" or self.api_key.startswith("sk-" ) == False:
+            raise ValueError("OPENROUTER_API_KEY environment variable is required and must be a valid key (starts with sk-)")
+        
+        # Set environment variable for OpenAI client
+        os.environ["OPENAI_API_KEY"] = self.api_key
+        
+        # Create provider for OpenRouter with proper headers
         self.provider = OpenAIProvider(
             base_url=self.api_base,
-            api_key=self.api_key,
+            api_key=self.api_key
         )
         
-        # Initialize models
+        # Set headers after provider creation
+        self.provider.headers = {
+            "HTTP-Referer": "https://github.com/dallsszz/murder-mystery",  # Required by OpenRouter
+            "X-Title": "Murder Mystery Game",  # Required by OpenRouter
+            "Authorization": f"Bearer {self.api_key}",  # Required for authentication
+            "Content-Type": "application/json",  # Required for API requests
+            "OpenAI-Organization": "org-123",  # Required by OpenRouter
+            "OpenAI-Project": "proj-123"  # Required by OpenRouter
+        }
+        
+        # Set default parameters for OpenRouter
+        self.provider.default_params = {
+            "model": "deepseek/deepseek-r1-0528-qwen3-8b",  # Using DeepSeek model as default
+            "temperature": 0.7,
+            "max_tokens": 1000
+        }
+        
+        # Initialize models with proper configuration
         self.reasoning_model = OpenAIModel(
-            'tngtech/deepseek-r1t-chimera:free',
-            provider=self.provider,
+            'mistralai/mistral-nemo',  # Using Mistral Nemo for reasoning
+            provider=self.provider
         )
         
         self.writing_model = OpenAIModel(
-            'mistralai/mistral-nemo:free',
-            provider=self.provider,
+            'mistralai/mistral-nemo',  # Using Mistral Nemo for writing
+            provider=self.provider
         )
+        
+        # Set model routes after initialization
+        self.reasoning_model.route = 'mistralai/mistral-nemo'  # OpenRouter route
+        self.writing_model.route = 'mistralai/mistral-nemo'  # OpenRouter route
         
         # Default model (used when no specific task type is provided)
         self.default_model = self.reasoning_model
@@ -87,6 +117,15 @@ class ModelRouter:
             Response: The model response
         """
         model = self.get_model_for_task(task_type)
+        
+        # Set default parameters based on task type
+        if task_type.lower() in ['reasoning', 'analysis', 'thinking', 'planning']:
+            kwargs.setdefault('temperature', 0.3)  # Lower temperature for reasoning
+            kwargs.setdefault('max_tokens', 1000)
+        elif task_type.lower() in ['writing', 'narrative', 'content', 'story']:
+            kwargs.setdefault('temperature', 0.7)  # Higher temperature for creative writing
+            kwargs.setdefault('max_tokens', 2000)
+        
         # --- Redis Caching Logic ---
         # Try to get user_id from kwargs or agent context
         user_id = kwargs.get('user_id')
@@ -133,8 +172,8 @@ class ModelRouter:
         """
         model = self.get_model_for_task(task_type)
         if model == self.reasoning_model:
-            return "deepseek-r1t-chimera"
+            return "mistralai/mistral-nemo"
         elif model == self.writing_model:
-            return "mistral-nemo"
+            return "mistralai/mistral-nemo"
         else:
             return "unknown"

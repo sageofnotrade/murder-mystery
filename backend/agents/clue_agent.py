@@ -116,65 +116,38 @@ class ClueAgent(BaseAgent):
         self.dependencies = ClueAgentDependencies(memory, use_mem0, user_id, mem0_config)
 
     def _create_pydantic_agent(self):
-        """Create and configure the PydanticAI agent."""
-        # Determine which model to use based on environment variables
-        model_name = os.getenv("LLM_MODEL", "openai:gpt-4o")
-
-        # Create the agent with appropriate system prompt
+        """Create a PydanticAgent for clue generation"""
+        # Use the model router to get the appropriate model
+        model = self.model_router.get_model_for_task("reasoning")  # Using reasoning model for clue analysis
+        
         agent = PydanticAgent(
-            model_name,
-            deps_type=ClueAgentDependencies,
-            output_type=Union[ClueOutput, ClueGenerateOutput],
-            system_prompt=(
-                "You are a forensic expert helping with a detective investigation. "
-                "Create detailed descriptions of clues based on given prompts. "
-                "Include physical characteristics, potential significance, and possible connections to the case. "
-                "Be precise, analytical, and consider all possible interpretations of the evidence."
-            ),
-            retries=2  # Allow retries for better error handling
+            model=model,  # Use the model from the router
+            system_prompt="""You are an expert detective and clue analyst for a murder mystery game.
+Your task is to analyze and generate clues that are:
+1. Relevant to the mystery
+2. Detailed and specific
+3. Potentially misleading but fair
+4. Consistent with the story's tone and setting
+
+You MUST respond with a valid JSON object containing the following fields:
+- description: A brief description of the clue
+- details: Detailed analysis of the clue's significance
+- significance: How this clue relates to the mystery
+- related_clues: List of other clues this connects to
+- confidence_level: A number from 1-10 indicating how confident you are in this clue's relevance
+
+Example response format:
+{
+    "description": "A blood-stained handkerchief with embroidered initials",
+    "details": "The handkerchief appears to be made of fine silk, suggesting it belonged to someone of high social standing. The blood stains are fresh and the embroidery shows the initials 'L.B.'",
+    "significance": "This could link to Lady Blackwood, who was known to carry such handkerchiefs. The blood suggests it was used to clean up after the murder.",
+    "related_clues": ["The broken window", "Footprints in the garden"],
+    "confidence_level": 8
+}
+
+Remember: Your response MUST be a valid JSON object matching this format exactly.""",
+            allow_retries=True
         )
-
-        # Register tools for the agent
-        @agent.tool
-        async def brave_search(ctx: RunContext[ClueAgentDependencies], query: str) -> list[dict]:
-            """Search the web for information related to the query."""
-            return self._brave_search(query)
-
-        @agent.tool
-        async def generate_clue_data(
-            ctx: RunContext[ClueAgentDependencies],
-            prompt: str,
-            context: dict = None,
-            search_results: list[dict] = None,
-            memory_context: str = ""
-        ) -> ClueData:
-            """Generate a detailed clue based on the prompt and context."""
-            search_results = search_results or self._brave_search(prompt)
-            return self._llm_generate_clue_data(prompt, context or {}, search_results, memory_context)
-
-        @agent.tool
-        async def search_memories(
-            ctx: RunContext[ClueAgentDependencies],
-            query: str,
-            limit: int = 3,
-            threshold: float = 0.7,
-            rerank: bool = True
-        ) -> list[dict]:
-            """Search memories based on the query."""
-            if ctx.deps.use_mem0:
-                return ctx.deps.search_memories(query, limit, threshold, rerank)
-            return []
-
-        @agent.tool
-        async def update_memory(
-            ctx: RunContext[ClueAgentDependencies],
-            key: str,
-            value: str
-        ) -> None:
-            """Update memory with key-value pair."""
-            if ctx.deps.use_mem0:
-                ctx.deps.update_memory(key, value)
-
         return agent
 
     def generate_clue(self, prompt: str, context: dict = None) -> ClueOutput:
@@ -200,67 +173,84 @@ class ClueAgent(BaseAgent):
         # Try using PydanticAI agent first
         try:
             # Prepare the prompt for the agent
-            agent_prompt = (
-                f"Generate a detailed analysis for this clue: {prompt}\n"
-            )
+            agent_prompt = f"""Analyze the following clue in the context of a murder mystery:
 
-            # Add any additional context
-            if context:
-                agent_prompt += "Case context:\n"
-                for key, value in context.items():
-                    agent_prompt += f"- {key}: {value}\n"
+Location: {context.get('location', 'Unknown')}
+Crime Scene: {context.get('crime_scene', 'Unknown')}
+Existing Clues: {', '.join(context.get('existing_clues', []))}
+
+Generate a new clue that fits this context. Your response MUST be a valid JSON object with the following structure:
+{{
+    "description": "A brief description of the clue",
+    "details": "Detailed analysis of the clue's significance",
+    "significance": "How this clue relates to the mystery",
+    "related_clues": ["List", "of", "related", "clues"],
+    "confidence_level": 8
+}}
+
+Remember: Your response MUST be a valid JSON object matching this format exactly."""
 
             # Run the agent synchronously
             result = self.pydantic_agent.run_sync(
                 agent_prompt,
                 deps=self.dependencies,
-                model_settings={"temperature": 0.7, "max_tokens": 800}
+                model_settings={
+                    "temperature": 0.7,
+                    "max_tokens": 1000,
+                    "response_format": {"type": "json_object"}
+                }
             )
 
+            # DEBUG: Print the raw LLM output
+            print("[DEBUG] ClueAgent raw LLM output:", repr(getattr(result, 'output', None)))
+
             # Extract the clue from the result
-            if hasattr(result.output, 'clue'):
-                # If we got a ClueGenerateOutput
-                if isinstance(result.output, ClueGenerateOutput):
-                    clue_data = result.output.clue
-                    sources = result.output.sources
+            if hasattr(result, 'output'):
+                try:
+                    # Try to parse the output as JSON
+                    if isinstance(result.output, str):
+                        # Clean up the string before parsing
+                        json_str = result.output.strip()
+                        # Remove any trailing commas
+                        json_str = json_str.rstrip(',')
+                        clue_data = json.loads(json_str)
+                    else:
+                        clue_data = result.output
 
-                    # Convert to dictionary format for backward compatibility
-                    clue_dict = {
-                        "description": clue_data.description,
-                        "details": clue_data.details,
-                        "context": context
-                    }
+                    # Create a ClueData object from the parsed JSON
+                    clue = ClueData(
+                        description=clue_data.get('description', ''),
+                        details=clue_data.get('details', ''),
+                        significance=clue_data.get('significance'),
+                        related_to=clue_data.get('related_clues', []),
+                        confidence=clue_data.get('confidence_level')
+                    )
 
-                    # Add optional fields if present
-                    if clue_data.significance:
-                        clue_dict["significance"] = clue_data.significance
-                    if clue_data.related_to:
-                        clue_dict["related_to"] = clue_data.related_to
-                    if clue_data.confidence:
-                        clue_dict["confidence"] = clue_data.confidence
-
-                    # Store the generated clue in Mem0
-                    if self.use_mem0 and self.mem0_config.get("store_summaries", True):
-                        self.update_memory("generated_clue", clue_data.description)
-
-                    return ClueOutput(clue=clue_dict, sources=sources)
-
-                # If we got a ClueOutput directly
-                elif isinstance(result.output, ClueOutput):
-                    # Store the generated clue in Mem0
-                    if self.use_mem0 and self.mem0_config.get("store_summaries", True):
-                        self.update_memory("generated_clue", str(result.output.clue.get("description", "")))
-
-                    return result.output
+                    return ClueOutput(clue=clue.model_dump(), sources=[])
+                except (json.JSONDecodeError, AttributeError) as e:
+                    print(f"[DEBUG] ClueAgent exception in JSON parsing: {e}")
+                    print(f"[DEBUG] ClueAgent raw JSON string: {repr(result.output)}")
+                    # Fall back to the original clue data
+                    if hasattr(result.output, 'clue'):
+                        if isinstance(result.output, ClueGenerateOutput):
+                            clue_data = result.output.clue
+                            return ClueOutput(clue=clue_data.model_dump(), sources=[])
+                        else:
+                            return ClueOutput(clue=result.output.clue, sources=[])
 
         except Exception as e:
-            error_msg = f"PydanticAI clue agent error: {str(e)}"
-            if self.use_mem0:
-                self.update_memory("last_error", error_msg)
+            print(f"[DEBUG] ClueAgent exception in LLM call: {e}")
+            result = None
 
-        # Fallback to traditional method if PydanticAI fails
+        # Fallback to traditional method if PydanticAI fails or output is invalid
+        print("[DEBUG] ClueAgent fallback path triggered. Result output:", repr(getattr(result, 'output', None)))
         search_results = self._brave_search(prompt)
         clue = self._llm_generate_clue(prompt, context, search_results)
+
+        # If the clue description is a dict (e.g., context), fix it
+        if isinstance(clue.get('description'), dict):
+            clue['description'] = f"Clue: {prompt} (context: {context})"
+            clue['details'] = "No valid clue could be generated."
 
         # Track performance metrics if enabled
         if self.use_mem0 and self.mem0_config.get("track_performance", True):
@@ -345,7 +335,22 @@ class ClueAgent(BaseAgent):
             )
 
             # Build user prompt
-            user_prompt = f"Analyze this clue: {prompt}\n"
+            user_prompt = f"""Analyze the following clue in the context of a murder mystery:
+
+Location: {context.get('location', 'Unknown')}
+Crime Scene: {context.get('crime_scene', 'Unknown')}
+Existing Clues: {', '.join(context.get('existing_clues', []))}
+
+Generate a new clue that fits this context. Your response MUST be a valid JSON object with the following structure:
+{{
+    "description": "A brief description of the clue",
+    "details": "Detailed analysis of the clue's significance",
+    "significance": "How this clue relates to the mystery",
+    "related_clues": ["List", "of", "related", "clues"],
+    "confidence_level": 8
+}}
+
+Remember: Your response MUST be a valid JSON object matching this format exactly."""
 
             # Add context if provided
             if context:
@@ -453,7 +458,6 @@ class ClueAgent(BaseAgent):
         Legacy method for backward compatibility.
         """
         import json
-        from pydantic_ai.messages import Message
 
         # Format search results for the prompt
         search_context = ""
@@ -472,7 +476,22 @@ class ClueAgent(BaseAgent):
         )
 
         # Build user prompt
-        user_prompt = f"Analyze this clue: {prompt}\n"
+        user_prompt = f"""Analyze the following clue in the context of a murder mystery:
+
+Location: {context.get('location', 'Unknown')}
+Crime Scene: {context.get('crime_scene', 'Unknown')}
+Existing Clues: {', '.join(context.get('existing_clues', []))}
+
+Generate a new clue that fits this context. Your response MUST be a valid JSON object with the following structure:
+{{
+    "description": "A brief description of the clue",
+    "details": "Detailed analysis of the clue's significance",
+    "significance": "How this clue relates to the mystery",
+    "related_clues": ["List", "of", "related", "clues"],
+    "confidence_level": 8
+}}
+
+Remember: Your response MUST be a valid JSON object matching this format exactly."""
 
         # Add context if provided
         if context:
@@ -485,8 +504,8 @@ class ClueAgent(BaseAgent):
 
         # Prepare messages for the model
         messages = [
-            self.model_message_cls(role="system", content=system_prompt),
-            self.model_message_cls(role="user", content=user_prompt)
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ]
 
         try:

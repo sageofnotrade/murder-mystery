@@ -126,12 +126,12 @@ class StoryAgent(BaseAgent):
 
     def _create_pydantic_agent(self):
         """Create and configure the PydanticAI agent."""
-        # Determine which model to use based on environment variables
-        model_name = os.getenv("LLM_MODEL", "openai:gpt-4o")
-
+        # Use the model router to get the appropriate model
+        model = self.model_router.get_model_for_task("writing")
+        
         # Create the agent with appropriate system prompt
         agent = PydanticAgent(
-            model_name,
+            model=model,  # Use the model from the router
             deps_type=StoryAgentDependencies,
             output_type=Union[StoryAgentOutput, StoryAgentGenerateOutput],
             system_prompt=(
@@ -593,8 +593,8 @@ class StoryAgent(BaseAgent):
 
         # Create messages for the planning model
         planning_messages = [
-            ModelMessage(role="system", content=planning_system_prompt),
-            ModelMessage(role="user", content=planning_user_prompt)
+            {"role": "system", "content": planning_system_prompt},
+            {"role": "user", "content": planning_user_prompt}
         ]
 
         try:
@@ -662,8 +662,8 @@ class StoryAgent(BaseAgent):
 
             # Create messages for the writing model
             writing_messages = [
-                ModelMessage(role="system", content=writing_system_prompt),
-                ModelMessage(role="user", content=writing_user_prompt)
+                {"role": "system", "content": writing_system_prompt},
+                {"role": "user", "content": writing_user_prompt}
             ]
 
             # Generate the story using the writing model
@@ -763,8 +763,8 @@ class StoryAgent(BaseAgent):
             )
 
             planning_messages = [
-                ModelMessage(role="system", content=planning_system_prompt),
-                ModelMessage(role="user", content=planning_user_prompt)
+                {"role": "system", "content": planning_system_prompt},
+                {"role": "user", "content": planning_user_prompt}
             ]
 
             try:
@@ -834,8 +834,8 @@ class StoryAgent(BaseAgent):
                 )
 
                 writing_messages = [
-                    ModelMessage(role="system", content=writing_system_prompt),
-                    ModelMessage(role="user", content=writing_user_prompt)
+                    {"role": "system", "content": writing_system_prompt},
+                    {"role": "user", "content": writing_user_prompt}
                 ]
 
                 writing_response = self.model_router.complete(
@@ -898,8 +898,8 @@ class StoryAgent(BaseAgent):
 
             # Create messages for the reasoning model
             messages = [
-                ModelMessage(role="system", content=system_prompt),
-                ModelMessage(role="user", content=user_prompt)
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ]
 
             # Use the reasoning model to extract clues

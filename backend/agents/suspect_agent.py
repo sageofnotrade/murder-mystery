@@ -130,19 +130,19 @@ class SuspectAgent(BaseAgent):
 
     def _create_pydantic_agent(self):
         """Create and configure the PydanticAI agent."""
-        # Determine which model to use based on environment variables
-        model_name = os.getenv("LLM_MODEL", "openai:gpt-4o")
-
+        # Use the model router to get the appropriate model
+        model = self.model_router.get_model_for_task("reasoning")
+        
         # Create the agent with appropriate system prompt
         agent = PydanticAgent(
-            model_name,
+            model=model,  # Use the model from the router
             deps_type=SuspectAgentDependencies,
             output_type=Union[SuspectProfileOutput, SuspectDialogueOutput],
             system_prompt=(
-                "You are an expert criminal psychologist and detective specializing in suspect profiling. "
-                "Create realistic, nuanced suspect profiles and generate believable dialogue for suspects "
-                "under interrogation. Consider their psychology, background, and potential motives. "
-                "Pay attention to subtle behavioral cues, contradictions, and emotional responses."
+                "You are an expert at creating and managing suspect characters in mystery stories. "
+                "Create compelling, complex suspects with clear motivations and personalities. "
+                "Include rich character details, potential alibis, and suspicious behaviors. "
+                "The suspects should be memorable and have depth."
             ),
             retries=2  # Allow retries for better error handling
         )
@@ -368,8 +368,8 @@ class SuspectAgent(BaseAgent):
         )
 
         planning_messages = [
-            self.model_message_cls(role="system", content=planning_system_prompt),
-            self.model_message_cls(role="user", content=planning_user_prompt)
+            {"role": "system", "content": planning_system_prompt},
+            {"role": "user", "content": planning_user_prompt}
         ]
 
         try:
@@ -412,8 +412,8 @@ class SuspectAgent(BaseAgent):
             )
 
             writing_messages = [
-                self.model_message_cls(role="system", content=writing_system_prompt),
-                self.model_message_cls(role="user", content=writing_user_prompt)
+                {"role": "system", "content": writing_system_prompt},
+                {"role": "user", "content": writing_user_prompt}
             ]
 
             # Generate the profile using the writing model
@@ -571,8 +571,8 @@ class SuspectAgent(BaseAgent):
         )
         
         planning_messages = [
-            self.model_message_cls(role="system", content=planning_system_prompt),
-            self.model_message_cls(role="user", content=planning_user_prompt)
+            {"role": "system", "content": planning_system_prompt},
+            {"role": "user", "content": planning_user_prompt}
         ]
         
         try:
@@ -609,8 +609,8 @@ class SuspectAgent(BaseAgent):
             )
             
             writing_messages = [
-                self.model_message_cls(role="system", content=writing_system_prompt),
-                self.model_message_cls(role="user", content=writing_user_prompt)
+                {"role": "system", "content": writing_system_prompt},
+                {"role": "user", "content": writing_user_prompt}
             ]
             
             writing_response = self.model_router.complete(
