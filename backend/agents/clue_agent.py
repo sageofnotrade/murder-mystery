@@ -116,65 +116,19 @@ class ClueAgent(BaseAgent):
         self.dependencies = ClueAgentDependencies(memory, use_mem0, user_id, mem0_config)
 
     def _create_pydantic_agent(self):
-        """Create and configure the PydanticAI agent."""
-        # Determine which model to use based on environment variables
-        model_name = os.getenv("LLM_MODEL", "openai:gpt-4o")
-
-        # Create the agent with appropriate system prompt
+        """Create a PydanticAgent for clue generation"""
         agent = PydanticAgent(
-            model_name,
-            deps_type=ClueAgentDependencies,
-            output_type=Union[ClueOutput, ClueGenerateOutput],
-            system_prompt=(
-                "You are a forensic expert helping with a detective investigation. "
-                "Create detailed descriptions of clues based on given prompts. "
-                "Include physical characteristics, potential significance, and possible connections to the case. "
-                "Be precise, analytical, and consider all possible interpretations of the evidence."
-            ),
-            retries=2  # Allow retries for better error handling
+            model="openai:gpt-3.5-turbo",  # Using a model that PydanticAI recognizes
+            system_prompt="""You are an expert in creating and managing clues for mystery stories.
+            Your task is to generate compelling and meaningful clues that help advance the story
+            while maintaining the mystery's integrity. Each clue should be:
+            - Relevant to the story
+            - Not too obvious or too obscure
+            - Consistent with the established narrative
+            - Potentially misleading but not unfair
+            - Rich in detail and atmosphere""",
+            allow_retries=True
         )
-
-        # Register tools for the agent
-        @agent.tool
-        async def brave_search(ctx: RunContext[ClueAgentDependencies], query: str) -> list[dict]:
-            """Search the web for information related to the query."""
-            return self._brave_search(query)
-
-        @agent.tool
-        async def generate_clue_data(
-            ctx: RunContext[ClueAgentDependencies],
-            prompt: str,
-            context: dict = None,
-            search_results: list[dict] = None,
-            memory_context: str = ""
-        ) -> ClueData:
-            """Generate a detailed clue based on the prompt and context."""
-            search_results = search_results or self._brave_search(prompt)
-            return self._llm_generate_clue_data(prompt, context or {}, search_results, memory_context)
-
-        @agent.tool
-        async def search_memories(
-            ctx: RunContext[ClueAgentDependencies],
-            query: str,
-            limit: int = 3,
-            threshold: float = 0.7,
-            rerank: bool = True
-        ) -> list[dict]:
-            """Search memories based on the query."""
-            if ctx.deps.use_mem0:
-                return ctx.deps.search_memories(query, limit, threshold, rerank)
-            return []
-
-        @agent.tool
-        async def update_memory(
-            ctx: RunContext[ClueAgentDependencies],
-            key: str,
-            value: str
-        ) -> None:
-            """Update memory with key-value pair."""
-            if ctx.deps.use_mem0:
-                ctx.deps.update_memory(key, value)
-
         return agent
 
     def generate_clue(self, prompt: str, context: dict = None) -> ClueOutput:
@@ -453,7 +407,6 @@ class ClueAgent(BaseAgent):
         Legacy method for backward compatibility.
         """
         import json
-        from pydantic_ai.messages import Message
 
         # Format search results for the prompt
         search_context = ""
@@ -485,8 +438,8 @@ class ClueAgent(BaseAgent):
 
         # Prepare messages for the model
         messages = [
-            self.model_message_cls(role="system", content=system_prompt),
-            self.model_message_cls(role="user", content=user_prompt)
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
         ]
 
         try:
