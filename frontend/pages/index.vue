@@ -20,12 +20,6 @@
         >
           Learn More
         </NuxtLink>
-        <NuxtLink
-          to="/help"
-          class="border border-mystery-light text-mystery-light px-8 py-3 rounded-lg text-lg font-semibold hover:bg-mystery-light/10 transition-colors"
-        >
-          Help
-        </NuxtLink>
       </div>
     </section>
 
